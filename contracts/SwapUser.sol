@@ -5,7 +5,7 @@ import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 contract SwapUser {
   using Address for address;
   address userAddress;
-  bool userHasOptedInForSwapping;
+  bool optInStatus;
 
   address private constant kovan_tusd = 0xc6e977741487dd8457397b185709cd89b0cf5e7e;
   address private constant kovan_wbtc = 0xa0a5ad2296b38bd3e3eb59aaeaf1589e8d9a29a9;
@@ -14,8 +14,8 @@ contract SwapUser {
   constructor() {
   }
 
-  function getUserSwapOptInStatus() internal view returns (bool) {
-    return userHasOptedInForSwapping;
+  function getUserOptInStatus() internal view returns (bool) {
+    return optInStatus;
   }
 
   function getUserTUSDBalance() internal view returns (uint) {
