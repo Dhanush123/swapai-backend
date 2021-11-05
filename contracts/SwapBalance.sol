@@ -9,15 +9,15 @@ contract SwapBalance {
   address constant kovan_wbtc = 0xa0a5ad2296b38bd3e3eb59aaeaf1589e8d9a29a9;
   address constant kovan_eth = 0xdB33dFD3D61308C33C63209845DaD3e6bfb2c674;
 
-  function getUserTUSDBalance() internal view returns (uint) {
-    return IERC20(kovan_tusd).balanceOf(this);
+  function getContractTUSDBalance() internal view returns (uint) {
+    return IERC20(kovan_tusd).balanceOf(address(this));
   }
 
-  function getUserWBTCBalance() internal view returns (uint) {
-    return IERC20(kovan_wbtc).balanceOf(this);
+  function getUContractWBTCBalance() internal view returns (uint) {
+    return IERC20(kovan_wbtc).balanceOf(address(this));
   }
 
-  function getUserETHBalance() internal view returns (uint) {
-    return IERC20(kovan_eth).balanceOf(this);
+  function getContractETHBalance() internal view returns (uint) {
+    return IERC20(kovan_eth).balanceOf(address(this));
   }
 }
