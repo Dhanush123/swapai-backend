@@ -42,7 +42,7 @@ contract OracleCaller {
     bool isBTCPriceGoingDown = (btcPriceCurrent/btcPricePrediction * 10**8) > 105000000; // check if > 5% decrease
     bool isNegativeFuture = isInsufficientTUSDRatio || isNegativeBTCSentiment || isBTCPriceGoingDown;
     for (uint i=0; i < currentUsersToSwap.length; i++) {
-      swapper.swap(currentUsersToSwap[i], isNegativeFuture);
+      swapper.initiateSwap(currentUsersToSwap[i], isNegativeFuture);
     }    
   }
   
