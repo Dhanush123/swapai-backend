@@ -1,7 +1,7 @@
 pragma solidity ^0.8.7;
 
 // 3rd-party library imports
-import "sushiswap/core/contracts/uniswapv2/UniswapV2Router02"
+import "@sushiswap/core/contracts/uniswapv2/UniswapV2Router02.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 // 1st-party project imports
@@ -42,7 +42,7 @@ contract Swapper is UniswapV2Router02 {
     );
 
     // Finally, perform the swap from starting to ending token via the token path specified
-    uint memory swappedAmts[] = this.swapExactTokensForTokens(
+    uint[] memory swappedAmts = this.swapExactTokensForTokens(
       _inputAmt,                                // amount in terms of starting token
       Constants.MIN_OUTPUT_AMT,                 // min amount expected in terms of ending token
       _tokenPath,                               // path of swapping from starting to ending token
@@ -57,44 +57,64 @@ contract Swapper is UniswapV2Router02 {
    * Swapping TUSD -> BTC (WBTC)
    */
   function _swapTUSDtoWBTC(address _user, uint _inputAmt) internal returns (uint) {
-    address memory path[] = [
-      Constants.KOVAN_TUSD,
-      Constants.KOVAN_WETH,
-      Constants.KOVAN_WBTC,
-    ];
+    // require(_user.tusdBalance > 0, 'User does not have any TUSD to swap to WBTC');
+    
+    if (_user.tusdBalance > 0) {
+      // Swap from TUSD in favor of WBTC (manual swap)
 
-    return _swap(_user, _inputAmt, path);
+      address[3] memory path = [
+        Constants.KOVAN_TUSD,
+        Constants.KOVAN_WETH,
+        Constants.KOVAN_WBTC
+      ];
+
+      uint finalWbtcBalance = _swap(_user.userAddress, _user.tusdBalance, path);
+
+      _user.tusdBalance = 0;
+      _user.wbtcBalance = finalWbtcBalance;
+    }
   }
 
   /*
    * Swapping BTC (WBTC) -> TUSD
    */
-  function _swapWBTCtoTUSD(address _user, uint _inputAmt) internal returns (uint) {
-    address memory path[] = [
-      Constants.KOVAN_WBTC,
-      Constants.KOVAN_WETH,
-      Constants.KOVAN_TUSD,
-    ];
+  function _swapWBTCtoTUSD(SwapUser _user, uint _inputAmt) internal returns (uint) {
+    // require(_user.wbtcBalance > 0, 'User does not have any WBTC to swap to TUSD');
+    
+    if (_user.wbtcBalance > 0) {
+      // Swap from WBTC in favor of TUSD (manual swap)
 
-    return _swap(_user, _inputAmt, path);
+      address[3] memory path = [
+        Constants.KOVAN_WBTC,
+        Constants.KOVAN_WETH,
+        Constants.KOVAN_TUSD
+      ];
+
+      uint finalTusdBalance = _swap(_user.userAddress, _user.wbtcBalance, path);
+
+      _user.tusdBalance = finalTusdBalance;
+      _user.wbtcBalance = 0;
+    }
   }
 
-  function initiateSwap(SwapUser _user, bool isNegativeFuture) external {
-    if (!isNegativeFuture && _user.tusdBalance > 0) {
-      // Swap from TUSD in favor of WBTC to capitalize on potential gains
-
-      // require(_user.tusdBalance > 0, 'User does not have any TUSD to swap to WBTC');
-      uint finalWbtcBalance = _swapTUSDtoWBTC(_user.userAddress, _user.tusdBalance);
-
-      _user.tusdBalance = 0;
-      _user.wbtcBalance = finalWbtcBalance;
-    } else if (_user.wbtcBalance > 0) {
-      // Swap from WBTC in favor of TUSD to prevent future losses
-
-      // require(_user.wbtcBalance >= 0, 'User does not have any WBTC to swap to TUSD');
-      uint finalTusdBalance = _swapTUSDtoWBTC(_user.userAddress, _user.wbtcBalance);
-      _user.wbtcBalance = 0;
-      _user.tusdBalance = finalTusdBalance;
+  function doManualSwap(SwapUser _user, bool swapTUSD) {
+    if (swapTUSD) {
+      // Swap from TUSD in favor of WBTC (manual swap)
+      _swapTUSDtoWBTC();
+    } else {
+      // Swap from WBTC in favor of TUSD (manual swap)
+      _swapWBTCtoTUSD();
     }
+  }
+
+  function doAutoSwap(SwapUser _user, bool isPositiveFuture, bool isNegativeFuture) external {
+    if (isPositiveFuture) {
+      // Swap from TUSD in favor of WBTC to capitalize on gains
+      _swapTUSDtoWBTC();
+    } else if (isNegativeFuture) {
+      // Swap from WBTC in favor of TUSD to minimize losses
+      _swapWBTCtoTUSD();
+    }
+    // Otherwise do nothing
   }
 }

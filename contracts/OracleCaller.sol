@@ -41,29 +41,45 @@ contract OracleCaller {
     swapper = Swapper();
   }
 
-  function trySwap(SwapUser[] _currentUsersToSwap, bool _force) internal {
+  // Should only be called by keeper
+  function trySwapAuto(SwapUser[] _currentUsersToSwap, bool force) internal {
     currentUsersToSwap = _currentUsersToSwap;
     force = _force;
-    if (force == true) {
-      swapPerUser(false, true); // isNegativeFuture can be any value, should refactor to not have to pass it in
-    } else {
-      requestTUSDRatio();
-    }
+
+    startPredictionAnalysis();
   }
 
-  function swapPerUser(bool isNegativeFuture, bool force) private {
-    for (uint i=0; i < currentUsersToSwap.length; i++) {
-      swapper.initiateSwap(currentUsersToSwap[i], isNegativeFuture, force);
-    } 
+  function trySwapManual(SwapUser[] _currentUsersToSwap, bool swapToTUSD) internal {
+    currentUsersToSwap = _currentUsersToSwap;
+    
+    for (uint i = 0; i < currentUsersToSwap.length; i++) {
+      swapper.doManualSwap(currentUsersToSwap[i], swapToTUSD);
+    }
   }
 
   function shouldSwap() private {
     bool isInsufficientTUSDRatio = tusdRatio < 9999; // 10000 means 1:1 asset:reserve ratio, less means $ assets > $ reserves
-    bool isNegativeBTCSentiment = btcSentiment < 5000; // 5000 means 0.5 sentiment from range [-1,1]
+    bool isNegativeBTCSentiment = btcSentiment < 2500; // 5000 means 0.5 sentiment from range [-1,1]
     bool isBTCPriceGoingDown = (btcPriceCurrent/btcPricePrediction * 10**8) > 105000000; // check if > 5% decrease
     bool isNegativeFuture = isInsufficientTUSDRatio || isNegativeBTCSentiment || isBTCPriceGoingDown;
-    swapPerUser(isNegativeFuture);
+    
+    bool isSufficientTUSDRatio = tusdRatio >= 10000; 
+    bool isPositiveBTCSentiment = btcSentiment > 7500; 
+    bool isBTCPriceGoingDown = (btcPriceCurrent/btcPricePrediction * 10**8) < 95000000; // check if > 5% increase
+    bool isPositiveFuture = isSufficientTUSDRatio && isPositiveBTCSentiment && isBTCPriceGoingDown;
+    
+    for (uint i = 0; i < currentUsersToSwap.length; i++) {
+      swapper.doAutoSwap(currentUsersToSwap[i], isPositiveFuture, isNegativeFuture);
+    }
   }
+
+  function startPredictionAnalysis() {
+    requestTUSDRatio();
+  }
+
+  /////////////////////
+  // Currency Ratios //
+  /////////////////////
   
   function requestTUSDRatio() internal {
     Chainlink.Request memory req = buildChainlinkRequest(ratioJobID, address(this), this.getTUSDRatio.selector);
@@ -74,6 +90,10 @@ contract OracleCaller {
     ratio = _ratio;
     requestBTCSentiment();
   }
+
+  ///////////////////////////
+  // BTC Sentiment Analyis //
+  ///////////////////////////
 
   function requestBTCSentiment() internal {
     Chainlink.Request memory req = buildChainlinkRequest(sentimentJobID, address(this), this.getBTCSentiment.selector);
@@ -87,6 +107,10 @@ contract OracleCaller {
     requestAndGetBTCPriceCurrent();
   }
 
+  ///////////////////////////
+  // BTC Price Predictions //
+  ///////////////////////////
+  
   function requestAndGetBTCPriceCurrent() internal {
     (
         uint80 roundID, 
