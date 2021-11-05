@@ -8,7 +8,7 @@ import "./ISwapAI.sol";
 import "./SwapUser.sol";
 
 contract SwapAI is ISwapAI, KeeperCompatibleInterface {
-    using Address for address;  
+    using Address for address;
     using SafeMath for uint;
 
     address[] private userAddresses;
