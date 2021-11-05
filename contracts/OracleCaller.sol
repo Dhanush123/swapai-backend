@@ -45,13 +45,13 @@ contract OracleCaller {
     currentUsersToSwap = _currentUsersToSwap;
     force = _force;
     if (force == true) {
-      swapPerUser();
+      swapPerUser(false, true); // isNegativeFuture can be any value, should refactor to not have to pass it in
     } else {
       requestTUSDRatio();
     }
   }
 
-  function swapPerUser() private {
+  function swapPerUser(bool isNegativeFuture, bool force) private {
     for (uint i=0; i < currentUsersToSwap.length; i++) {
       swapper.initiateSwap(currentUsersToSwap[i], isNegativeFuture, force);
     } 
@@ -62,7 +62,7 @@ contract OracleCaller {
     bool isNegativeBTCSentiment = btcSentiment < 5000; // 5000 means 0.5 sentiment from range [-1,1]
     bool isBTCPriceGoingDown = (btcPriceCurrent/btcPricePrediction * 10**8) > 105000000; // check if > 5% decrease
     bool isNegativeFuture = isInsufficientTUSDRatio || isNegativeBTCSentiment || isBTCPriceGoingDown;
-    swapPerUser(isNegativeFuture, force);
+    swapPerUser(isNegativeFuture);
   }
   
   function requestTUSDRatio() internal {
