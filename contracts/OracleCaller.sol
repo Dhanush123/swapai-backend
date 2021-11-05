@@ -41,20 +41,28 @@ contract OracleCaller {
     swapper = Swapper();
   }
 
-  function trySwap(SwapUser[] _currentUsersToSwap, bool _force) {
+  function trySwap(SwapUser[] _currentUsersToSwap, bool _force) internal {
     currentUsersToSwap = _currentUsersToSwap;
     force = _force;
-    requestTUSDRatio();
+    if (force == true) {
+      swapPerUser();
+    } else {
+      requestTUSDRatio();
+    }
   }
 
-  function shouldSwap() {
+  function swapPerUser() private {
+    for (uint i=0; i < currentUsersToSwap.length; i++) {
+      swapper.initiateSwap(currentUsersToSwap[i], isNegativeFuture, force);
+    } 
+  }
+
+  function shouldSwap() private {
     bool isInsufficientTUSDRatio = tusdRatio < 9999; // 10000 means 1:1 asset:reserve ratio, less means $ assets > $ reserves
     bool isNegativeBTCSentiment = btcSentiment < 5000; // 5000 means 0.5 sentiment from range [-1,1]
     bool isBTCPriceGoingDown = (btcPriceCurrent/btcPricePrediction * 10**8) > 105000000; // check if > 5% decrease
     bool isNegativeFuture = isInsufficientTUSDRatio || isNegativeBTCSentiment || isBTCPriceGoingDown;
-    for (uint i=0; i < currentUsersToSwap.length; i++) {
-      swapper.initiateSwap(currentUsersToSwap[i], isNegativeFuture, force);
-    }    
+    swapPerUser(isNegativeFuture, force);
   }
   
   function requestTUSDRatio() internal {
