@@ -38,6 +38,10 @@ contract SwapAI is ISwapAI, KeeperCompatibleInterface {
     }
   } 
 
+  function getUserBalance() external override {
+    emit UserBalance(userData[msg.sender].TUSDBalance, userData[msg.sender].WBTCBalance);
+  } 
+
   function optInToggle() external override {
     userData[msg.sender].optInStatus = !userData[msg.sender].optInStatus;
     emit OptInToggle(userData[msg.sender].optInStatus);
