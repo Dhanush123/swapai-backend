@@ -1,16 +1,15 @@
-pragma solidity ^0.8.7;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.6.12;
 
-import "@chainlink/contracts/src/v0.8/interfaces/KeeperCompatibleInterface.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
-import {Address} from "@openzeppelin/contracts/utils/Address.sol";
+// 3rd-party library imports
+import "@chainlink/contracts/src/v0.6/interfaces/KeeperCompatibleInterface.sol";
+
+// 1st-party project imports
 import "./ISwapAI.sol";
 import "./SwapUser.sol";
+import "./OracleCaller.sol";
 
 contract SwapAI is ISwapAI, KeeperCompatibleInterface {
-    using Address for address;  
-    using SafeMath for uint;
-
     address[] private userAddresses;
     mapping(address => SwapUser) private userData;
     OracleCaller internal oracleCaller;
@@ -21,7 +20,7 @@ contract SwapAI is ISwapAI, KeeperCompatibleInterface {
     uint public immutable interval;
     uint public lastTimeStamp;
 
-    constructor(uint updateInterval) {
+    constructor(uint updateInterval) public {
       interval = updateInterval;
       lastTimeStamp = block.timestamp;
     }
@@ -42,31 +41,34 @@ contract SwapAI is ISwapAI, KeeperCompatibleInterface {
     }
 
     function isAtleastOneUserOptIn() private returns (bool) {
-      for (uint i=0; i < userAddresses.length; i++) {
+      for (uint i = 0; i < userAddresses.length; i++) {
         if (userData[userAddresses[i]].optInStatus == true) {
           return true;
         } 
       }
+
       return false;
     }
 
-    function getSwapEligibleUsers() private returns (SwapUser[]) {
-      SwapUser[] users;
-      for (uint i=0; i < userAddresses.length; i++) {
+    function getSwapEligibleUsers() public returns (SwapUser[] memory) {
+      SwapUser[] memory eligibleUsers;
+
+      for (uint i = 0; i < userAddresses.length; i++) {
         SwapUser user = userData[userAddresses[i]];
-        if (swapUser.optInStatus == true) {
+        if (user.optInStatus == true) {
           eligibleUsers.push(user);
         }
       }
-      return users;
+
+      return eligibleUsers;
     }
 
-    function swapSingleUserBalance() external {
-      uint[] currentUserDataOnly = [userData[msg.sender]];
-      oracleCaller.trySwapManual(currentUserDataOnly);
+    function swapSingleUserBalance() external override {
+      uint[1] memory currentUserDataOnly = [userData[msg.sender]];
+      oracleCaller.trySwapManual(currentUserDataOnly, false);
     }
 
-    function swapAllUsersBalances(bool force) external {
+    function swapAllUsersBalances(bool force) public override {
       oracleCaller.trySwapAuto(getSwapEligibleUsers(), force); 
     }
 

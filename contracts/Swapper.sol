@@ -1,4 +1,5 @@
-pragma solidity ^0.8.7;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.6.12;
 
 // 3rd-party library imports
 import "@sushiswap/core/contracts/uniswapv2/UniswapV2Router02.sol";
@@ -6,6 +7,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 // 1st-party project imports
 import "./Constants.sol";
+import "./SwapUser.sol";
 
 contract Swapper is UniswapV2Router02 {
   ////////////////////
@@ -56,10 +58,10 @@ contract Swapper is UniswapV2Router02 {
   /*
    * Swapping TUSD -> BTC (WBTC)
    */
-  function _swapTUSDtoWBTC(address _user, uint _inputAmt) internal returns (uint) {
+  function _swapTUSDtoWBTC(SwapUser _user, uint _inputAmt) internal returns (uint) {
     // require(_user.tusdBalance > 0, 'User does not have any TUSD to swap to WBTC');
     
-    if (_user.tusdBalance > 0) {
+    if (_user.getTUSDBalance() > 0) {
       // Swap from TUSD in favor of WBTC (manual swap)
 
       address[3] memory path = [
@@ -68,10 +70,10 @@ contract Swapper is UniswapV2Router02 {
         Constants.KOVAN_WBTC
       ];
 
-      uint finalWbtcBalance = _swap(_user.userAddress, _user.tusdBalance, path);
+      uint finalWbtcBalance = _swap(_user.userAddress, _user.getTUSDBalance(), path);
 
-      _user.tusdBalance = 0;
-      _user.wbtcBalance = finalWbtcBalance;
+      _user.setTusdBalance(0);
+      _user.setWbtcBalance(finalWbtcBalance);
     }
   }
 
@@ -81,7 +83,7 @@ contract Swapper is UniswapV2Router02 {
   function _swapWBTCtoTUSD(SwapUser _user, uint _inputAmt) internal returns (uint) {
     // require(_user.wbtcBalance > 0, 'User does not have any WBTC to swap to TUSD');
     
-    if (_user.wbtcBalance > 0) {
+    if (_user.getWBTCBalance() > 0) {
       // Swap from WBTC in favor of TUSD (manual swap)
 
       address[3] memory path = [
@@ -90,14 +92,14 @@ contract Swapper is UniswapV2Router02 {
         Constants.KOVAN_TUSD
       ];
 
-      uint finalTusdBalance = _swap(_user.userAddress, _user.wbtcBalance, path);
+      uint finalTusdBalance = _swap(_user.userAddress, _user.getWBTCBalance(), path);
 
-      _user.tusdBalance = finalTusdBalance;
-      _user.wbtcBalance = 0;
+      _user.setTUSDBalance(finalTusdBalance);
+      _user.setWbtcBalance(0);
     }
   }
 
-  function doManualSwap(SwapUser _user, bool swapTUSD) {
+  function doManualSwap(SwapUser _user, bool swapTUSD) external {
     if (swapTUSD) {
       // Swap from TUSD in favor of WBTC (manual swap)
       _swapTUSDtoWBTC();

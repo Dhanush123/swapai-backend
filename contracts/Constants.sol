@@ -1,6 +1,8 @@
-pragma solidity ^0.8.7;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.6.12;
 
 library Constants {
+
   address public constant SUSHIV2_ROUTER02 = 0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F;
 
   address public constant KOVAN_TUSD = 0xC6e977741487dd8457397b185709CD89B0CF5E7e;

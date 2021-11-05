@@ -1,14 +1,15 @@
-pragma solidity ^0.8.7;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.6.12;
 
-import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
-import "@chainlink/contracts/src/v0.8/ChainlinkClient.sol";
-import {Address} from "@openzeppelin/contracts/utils/Address.sol";
+// 3rd-party library imports
+import "@chainlink/contracts/src/v0.6/ChainlinkClient.sol";
+import "@chainlink/contracts/src/v0.6/interfaces/AggregatorV3Interface.sol";
+
+// 1st-party project imports
 import "./Swapper.sol";
 import "./SwapAI.sol";
 
-contract OracleCaller {
-  using SafeMath for uint;
-  using Address for address;
+contract OracleCaller is ChainlinkClient {
   // Chainlink oracle code goes here
   uint private constant fee = 0.01 * 1 ether;
   uint private tusdRatio;
@@ -36,20 +37,20 @@ contract OracleCaller {
     SwapUser[] users
   );
 
-  constructor() {
+  constructor() public {
     priceFeed = AggregatorV3Interface(btcUsdPriceFeedAddress);
     swapper = Swapper();
   }
 
   // Should only be called by keeper
-  function trySwapAuto(SwapUser[] _currentUsersToSwap, bool force) internal {
+  function trySwapAuto(SwapUser[] memory _currentUsersToSwap, bool _force) internal {
     currentUsersToSwap = _currentUsersToSwap;
     force = _force;
 
     startPredictionAnalysis();
   }
 
-  function trySwapManual(SwapUser[] _currentUsersToSwap, bool swapToTUSD) internal {
+  function trySwapManual(SwapUser[] memory _currentUsersToSwap, bool swapToTUSD) internal {
     currentUsersToSwap = _currentUsersToSwap;
     
     for (uint i = 0; i < currentUsersToSwap.length; i++) {
@@ -60,20 +61,20 @@ contract OracleCaller {
   function shouldSwap() private {
     bool isInsufficientTUSDRatio = tusdRatio < 9999; // 10000 means 1:1 asset:reserve ratio, less means $ assets > $ reserves
     bool isNegativeBTCSentiment = btcSentiment < 2500; // 5000 means 0.5 sentiment from range [-1,1]
-    bool isBTCPriceGoingDown = (btcPriceCurrent/btcPricePrediction * 10**8) > 105000000; // check if > 5% decrease
+    bool isBTCPriceGoingDown = (btcPriceCurrent / btcPricePrediction * 10**8) > 105000000; // check if > 5% decrease
     bool isNegativeFuture = isInsufficientTUSDRatio || isNegativeBTCSentiment || isBTCPriceGoingDown;
     
     bool isSufficientTUSDRatio = tusdRatio >= 10000; 
     bool isPositiveBTCSentiment = btcSentiment > 7500; 
-    bool isBTCPriceGoingDown = (btcPriceCurrent/btcPricePrediction * 10**8) < 95000000; // check if > 5% increase
-    bool isPositiveFuture = isSufficientTUSDRatio && isPositiveBTCSentiment && isBTCPriceGoingDown;
+    bool isBTCPriceGoingUp = (btcPriceCurrent / btcPricePrediction * 10**8) < 95000000; // check if > 5% increase
+    bool isPositiveFuture = isSufficientTUSDRatio && isPositiveBTCSentiment && isBTCPriceGoingUp;
     
     for (uint i = 0; i < currentUsersToSwap.length; i++) {
       swapper.doAutoSwap(currentUsersToSwap[i], isPositiveFuture, isNegativeFuture);
     }
   }
 
-  function startPredictionAnalysis() {
+  function startPredictionAnalysis() private {
     requestTUSDRatio();
   }
 
@@ -87,7 +88,7 @@ contract OracleCaller {
   }
 
   function getTUSDRatio(bytes32 _requestID, uint _ratio) public recordChainlinkFulfillment(_requestID) {
-    ratio = _ratio;
+    tusdRatio = _ratio;
     requestBTCSentiment();
   }
 
