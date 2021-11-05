@@ -22,6 +22,7 @@ contract OracleCaller {
   bytes32 private constant priceJobID = "35e14dbd490f4e3b9fbe92b85b32d98a";
   bytes32 private constant sentimentJobID = "35e14dbd490f4e3b9fbe92b85b32d98a";
   bytes32 private constant ratioJobID = ""; // replace with custom adapter job id
+  bool private force;
   AggregatorV3Interface private priceFeed;
   Swapper private swapper;
   SwapUser[] private currentUsersToSwap;
@@ -40,8 +41,9 @@ contract OracleCaller {
     swapper = Swapper();
   }
 
-  function trySwap(SwapUser[] _currentUsersToSwap) {
+  function trySwap(SwapUser[] _currentUsersToSwap, bool _force) {
     currentUsersToSwap = _currentUsersToSwap;
+    force = _force;
     requestTUSDRatio();
   }
 
@@ -51,7 +53,7 @@ contract OracleCaller {
     bool isBTCPriceGoingDown = (btcPriceCurrent/btcPricePrediction * 10**8) > 105000000; // check if > 5% decrease
     bool isNegativeFuture = isInsufficientTUSDRatio || isNegativeBTCSentiment || isBTCPriceGoingDown;
     for (uint i=0; i < currentUsersToSwap.length; i++) {
-      swapper.initiateSwap(currentUsersToSwap[i], isNegativeFuture);
+      swapper.initiateSwap(currentUsersToSwap[i], isNegativeFuture, force);
     }    
   }
   
