@@ -33,6 +33,7 @@ contract OracleCaller {
     uint btcPriceCurrent,
     uint btcPricePrediction,
     bool isNegativeFuture,
+    bool isPositiveFuture,
     SwapUser[] users
   );
 
@@ -67,10 +68,10 @@ contract OracleCaller {
     bool isPositiveBTCSentiment = btcSentiment > 7500; 
     bool isBTCPriceGoingDown = (btcPriceCurrent/btcPricePrediction * 10**8) < 95000000; // check if > 5% increase
     bool isPositiveFuture = isSufficientTUSDRatio && isPositiveBTCSentiment && isBTCPriceGoingDown;
-    
     for (uint i = 0; i < currentUsersToSwap.length; i++) {
       swapper.doAutoSwap(currentUsersToSwap[i], isPositiveFuture, isNegativeFuture);
     }
+    emit SwapUsersBalances(tusdRatio, btcSentiment, btcPriceCurrent, btcPricePrediction, isNegativeFuture, isPositiveFuture, currentUsersToSwap);
   }
 
   function startPredictionAnalysis() {

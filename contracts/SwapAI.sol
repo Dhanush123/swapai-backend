@@ -2,6 +2,7 @@ pragma solidity ^0.8.7;
 
 import "@chainlink/contracts/src/v0.8/interfaces/KeeperCompatibleInterface.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import "./ISwapAI.sol";
@@ -45,9 +46,11 @@ contract SwapAI is ISwapAI, KeeperCompatibleInterface {
   function isAtleastOneUserOptIn() private returns (bool) {
     for (uint i=0; i < userAddresses.length; i++) {
       if (userData[userAddresses[i]].optInStatus == true) {
+        emit SwapEligibleUsersExist(true);
         return true;
       } 
     }
+    emit SwapEligibleUsersExist(false);
     return false;
   }
 
@@ -84,11 +87,15 @@ contract SwapAI is ISwapAI, KeeperCompatibleInterface {
   }
 
   function depositTUSD() payable {
-    userData[msg.sender].tusdBalance += msg.value;
+    uint oldTUSDBalance = userData[msg.sender].TUSDBalance;
+    userData[msg.sender].TUSDBalance += msg.value;
+    emit DepositTUSD(oldTUSDBalance, userData[msg.sender].TUSDBalance);
   }
 
   function depositWBTC() payable {
-    userData[msg.sender].wbtcBalance += msg.value;
+    uint oldWBTCBalance = userData[msg.sender].WBTCBalance;
+    userData[msg.sender].WBTCBalance += msg.value;
+    emit DepositWBTC(oldTUSDBalance, userData[msg.sender].TUSDBalance);
   }
 
   function getContractTUSDBalance() internal view returns (uint) {

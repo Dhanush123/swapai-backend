@@ -19,6 +19,16 @@ interface ISwapAI {
       bool optInStatus
   );
 
+  event DepositTUSD(
+    uint oldUserAmount,
+    uint newUserAmount
+  );
+
+  event DepositWBTC(
+    uint oldUserAmount,
+    uint newUserAmount
+  );
+
   event SwapEligibleUsersExist(
     bool swapEligibleStatus
   );

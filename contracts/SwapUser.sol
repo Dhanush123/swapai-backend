@@ -6,8 +6,8 @@ contract SwapUser {
   using Address for address;
   address userAddress;
   bool optInStatus;
-  uint wbtcBalance;
-  uint tusdBalance;
+  uint WBTCBalance;
+  uint TUSDBalance;
 
   constructor(address _userAddress, bool _optInStatus) {
     userAddress = _userAddress;
@@ -19,10 +19,10 @@ contract SwapUser {
   }
 
   function getUserWBTCBalance() internal view returns (uint) {
-    return wbtcBalance;
+    return WBTCBalance;
   }
 
   function getUserTUSDBalance() internal view returns (uint) {
-    return tusdBalance;
+    return TUSDBalance;
   }
 }
