@@ -1,7 +1,6 @@
 pragma solidity ^0.8.7;
 
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
-import "./SwapUser.sol";
 
 contract SwapUser {
   using Address for address;

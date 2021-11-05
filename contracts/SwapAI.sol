@@ -30,11 +30,15 @@ contract SwapAI is ISwapAI, KeeperCompatibleInterface {
       if (userData[msg.sender].userAddress == address(0)) {
         userData[msg.sender] = SwapUser(msg.sender, true);
         userAddresses.push(msg.sender);
+        emit CreateUser(true);
+      } else {
+        emit CreateUser(false);
       }
     } 
 
     function optInToggle() external override {
       userData[msg.sender].optInStatus = !userData[msg.sender].optInStatus;
+      emit OptInToggle(userData[msg.sender].optInStatus);
     }
 
     function isAtleastOneUserOptIn() private returns (bool) {
@@ -61,7 +65,6 @@ contract SwapAI is ISwapAI, KeeperCompatibleInterface {
       uint[] currentUserDataOnly = [userData[msg.sender]];
       oracleCaller.trySwap(currentUserDataOnly);
     }
-
 
     function swapAllUsersBalances(bool force) external {
       oracleCaller.trySwap(getSwapEligibleUsers(), force); 

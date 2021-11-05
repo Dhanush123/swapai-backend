@@ -1,5 +1,7 @@
 pragma solidity ^0.8.7;
 
+import "./SwapUser.sol";
+
 interface ISwapAI {
   function createUser() external;
 
@@ -15,5 +17,9 @@ interface ISwapAI {
 
   event OptInToggle(
       bool optInStatus
+  );
+
+  event SwapEligibleUsersExist(
+    bool swapEligibleStatus
   );
 }
