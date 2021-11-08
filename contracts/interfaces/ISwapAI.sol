@@ -10,6 +10,8 @@ interface ISwapAI {
 
   function swapAllUsersBalances(bool force) external;
 
+  function getUserBalance(bool force) external;
+
   event CreateUser(
       bool createUserStatus
   );
@@ -18,7 +20,22 @@ interface ISwapAI {
       bool optInStatus
   );
 
+  event DepositTUSD(
+    uint oldUserAmount,
+    uint newUserAmount
+  );
+
+  event DepositWBTC(
+    uint oldUserAmount,
+    uint newUserAmount
+  );
+
   event SwapEligibleUsersExist(
     bool swapEligibleStatus
+  );
+
+  event UserBalance(
+    uint WBTCBalance,
+    uint TUSDBalance
   );
 }

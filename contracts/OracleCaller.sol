@@ -34,6 +34,7 @@ contract OracleCaller is ChainlinkClient {
     uint btcPriceCurrent,
     uint btcPricePrediction,
     bool isNegativeFuture,
+    bool isPositiveFuture,
     SwapUser[] users
   );
 
@@ -72,6 +73,8 @@ contract OracleCaller is ChainlinkClient {
     for (uint i = 0; i < currentUsersToSwap.length; i++) {
       swapper.doAutoSwap(currentUsersToSwap[i], isPositiveFuture, isNegativeFuture);
     }
+
+    emit SwapUsersBalances(tusdRatio, btcSentiment, btcPriceCurrent, btcPricePrediction, isNegativeFuture, isPositiveFuture, currentUsersToSwap);
   }
 
   function startPredictionAnalysis() private {
