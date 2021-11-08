@@ -2,12 +2,12 @@
 pragma solidity ^0.6.12;
 
 // 3rd-party library imports
-import "@chainlink/contracts/src/v0.6/ChainlinkClient.sol";
-import "@chainlink/contracts/src/v0.6/interfaces/AggregatorV3Interface.sol";
+import { Chainlink, ChainlinkClient } from "@chainlink/contracts/src/v0.6/ChainlinkClient.sol";
+import { AggregatorV3Interface } from "@chainlink/contracts/src/v0.6/interfaces/AggregatorV3Interface.sol";
 
 // 1st-party project imports
-import "./Swapper.sol";
-import "./SwapAI.sol";
+import { SwapUser } from "./SwapUser.sol";
+import { Swapper } from "./Swapper.sol";
 
 contract OracleCaller is ChainlinkClient {
   // Chainlink oracle code goes here
@@ -39,18 +39,18 @@ contract OracleCaller is ChainlinkClient {
 
   constructor() public {
     priceFeed = AggregatorV3Interface(btcUsdPriceFeedAddress);
-    swapper = Swapper();
+    swapper = new Swapper();
   }
 
   // Should only be called by keeper
-  function trySwapAuto(SwapUser[] memory _currentUsersToSwap, bool _force) internal {
+  function trySwapAuto(SwapUser[] memory _currentUsersToSwap, bool _force) external {
     currentUsersToSwap = _currentUsersToSwap;
     force = _force;
 
     startPredictionAnalysis();
   }
 
-  function trySwapManual(SwapUser[] memory _currentUsersToSwap, bool swapToTUSD) internal {
+  function trySwapManual(SwapUser[] memory _currentUsersToSwap, bool swapToTUSD) external {
     currentUsersToSwap = _currentUsersToSwap;
     
     for (uint i = 0; i < currentUsersToSwap.length; i++) {
@@ -120,7 +120,9 @@ contract OracleCaller is ChainlinkClient {
         uint timeStamp,
         uint80 answeredInRound
     ) = priceFeed.latestRoundData();
-    btcPriceCurrent = price;
+
+    // We're assuming that price will *never* be negative
+    btcPriceCurrent = uint(price);
     
     requestBTCPricePrediction();
   }

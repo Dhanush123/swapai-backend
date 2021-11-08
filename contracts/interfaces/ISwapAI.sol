@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.6.12;
 
-import "./SwapUser.sol";
-
 interface ISwapAI {
   function createUser() external;
 

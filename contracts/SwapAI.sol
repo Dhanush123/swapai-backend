@@ -2,12 +2,12 @@
 pragma solidity ^0.6.12;
 
 // 3rd-party library imports
-import "@chainlink/contracts/src/v0.6/interfaces/KeeperCompatibleInterface.sol";
+import { KeeperCompatibleInterface } from "@chainlink/contracts/src/v0.6/interfaces/KeeperCompatibleInterface.sol";
 
 // 1st-party project imports
-import "./ISwapAI.sol";
-import "./SwapUser.sol";
-import "./OracleCaller.sol";
+import { ISwapAI } from "./interfaces/ISwapAI.sol";
+import { SwapUser } from "./SwapUser.sol";
+import { OracleCaller } from "./OracleCaller.sol";
 
 contract SwapAI is ISwapAI, KeeperCompatibleInterface {
     address[] private userAddresses;
@@ -26,8 +26,8 @@ contract SwapAI is ISwapAI, KeeperCompatibleInterface {
     }
 
     function createUser() external override {
-      if (userData[msg.sender].userAddress == address(0)) {
-        userData[msg.sender] = SwapUser(msg.sender, true);
+      if (userData[msg.sender].getUserAddress() == address(0)) {
+        userData[msg.sender] = new SwapUser(msg.sender, true);
         userAddresses.push(msg.sender);
         emit CreateUser(true);
       } else {
@@ -36,27 +36,37 @@ contract SwapAI is ISwapAI, KeeperCompatibleInterface {
     } 
 
     function optInToggle() external override {
-      userData[msg.sender].optInStatus = !userData[msg.sender].optInStatus;
-      emit OptInToggle(userData[msg.sender].optInStatus);
+      userData[msg.sender].toggleUserOptInStatus();
+      emit OptInToggle(userData[msg.sender].getUserOptInStatus());
     }
 
-    function isAtleastOneUserOptIn() private returns (bool) {
+    function isAtleastOneUserOptIn() private view returns (bool) {
       for (uint i = 0; i < userAddresses.length; i++) {
-        if (userData[userAddresses[i]].optInStatus == true) {
+        if (userData[userAddresses[i]].getUserOptInStatus())
           return true;
-        } 
       }
 
       return false;
     }
 
-    function getSwapEligibleUsers() public returns (SwapUser[] memory) {
-      SwapUser[] memory eligibleUsers;
+    function getSwapEligibleUsers() public view returns (SwapUser[] memory) {
+      // NOTE: To avoid having a storage array (i.e. extra gas cost), we're counting the items
+      // to be filtered and then instantiating a memory-based array
+      uint numEligibleUsers = 0;
 
       for (uint i = 0; i < userAddresses.length; i++) {
         SwapUser user = userData[userAddresses[i]];
-        if (user.optInStatus == true) {
-          eligibleUsers.push(user);
+        if (user.getUserOptInStatus())
+          numEligibleUsers++;
+      }
+
+      SwapUser[] memory eligibleUsers = new SwapUser[](numEligibleUsers);
+
+      uint j = 0;
+      for (uint i = 0; i < userAddresses.length; i++) {
+        SwapUser user = userData[userAddresses[i]];
+        if (user.getUserOptInStatus()) {
+          eligibleUsers[j++] = user;
         }
       }
 
@@ -64,7 +74,10 @@ contract SwapAI is ISwapAI, KeeperCompatibleInterface {
     }
 
     function swapSingleUserBalance() external override {
-      uint[1] memory currentUserDataOnly = [userData[msg.sender]];
+      // HACK: This form of array initialization is used to bypass a type cast error
+      SwapUser[] memory currentUserDataOnly = new SwapUser[](1);
+      currentUserDataOnly[0] = userData[msg.sender];
+
       oracleCaller.trySwapManual(currentUserDataOnly, false);
     }
 
