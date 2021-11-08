@@ -10,8 +10,8 @@ import { Constants } from "./Constants.sol";
 import { SwapUser } from "./SwapUser.sol";
 import { TokenSwapper } from "./TokenSwapper.sol";
 
+// Chainlink oracle code goes here
 contract OracleMaster is ChainlinkClient {
-  // Chainlink oracle code goes here
   uint private tusdRatio;
   uint private btcSentiment;
   uint private btcPriceCurrent;
@@ -100,14 +100,14 @@ contract OracleMaster is ChainlinkClient {
 
   function getBTCSentiment(bytes32 _requestID, uint _btcSentiment) public recordChainlinkFulfillment(_requestID) {
     btcSentiment = _btcSentiment;
-    requestAndGetBTCPriceCurrent();
+    requestBTCPriceCurrent();
   }
 
   ///////////////////////////
   // BTC Price Predictions //
   ///////////////////////////
   
-  function requestAndGetBTCPriceCurrent() internal {
+  function requestBTCPriceCurrent() internal {
     AggregatorV3Interface priceFeed = AggregatorV3Interface(Constants.BTC_USD_PRICE_FEED_ADDR);
 
     (,int price,,,) = priceFeed.latestRoundData();
