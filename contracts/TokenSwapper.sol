@@ -10,7 +10,7 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { Constants } from "./Constants.sol";
 import { ISwapUser } from "./interfaces/ISwapUser.sol";
 
-contract Swapper {
+contract TokenSwapper {
   using SafeERC20 for IERC20;
 
   ////////////////////

@@ -3,16 +3,18 @@ pragma solidity ^0.6.12;
 
 // 3rd-party library imports
 import { KeeperCompatibleInterface } from "@chainlink/contracts/src/v0.6/interfaces/KeeperCompatibleInterface.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 // 1st-party project imports
+import { Constants } from "./Constants.sol";
 import { ISwapAI } from "./interfaces/ISwapAI.sol";
 import { SwapUser } from "./SwapUser.sol";
-import { OracleCaller } from "./OracleCaller.sol";
+import { OracleMaster } from "./OracleMaster.sol";
 
 contract SwapAI is ISwapAI, KeeperCompatibleInterface {
     address[] private userAddresses;
     mapping(address => SwapUser) private userData;
-    OracleCaller internal oracleCaller;
+    OracleMaster internal oracleMaster;
 
     /**
     * Use an interval in seconds and a timestamp to slow execution of Upkeep
@@ -35,8 +37,11 @@ contract SwapAI is ISwapAI, KeeperCompatibleInterface {
       }
     }
 
-    function getUserBalance() external override {
-      emit UserBalance(userData[msg.sender].TUSDBalance, userData[msg.sender].WBTCBalance);
+    function fetchUserBalance() external override {
+      emit UserBalance(
+        userData[msg.sender].getTUSDBalance(),
+        userData[msg.sender].getWBTCBalance()
+      );
     }
 
     function optInToggle() external override {
@@ -44,7 +49,7 @@ contract SwapAI is ISwapAI, KeeperCompatibleInterface {
       emit OptInToggle(userData[msg.sender].getUserOptInStatus());
     }
 
-    function isAtleastOneUserOptIn() private view returns (bool) {
+    function isAtleastOneUserOptIn() private returns (bool) {
       bool result = false;
       for (uint i = 0; i < userAddresses.length; i++) {
         if (userData[userAddresses[i]].getUserOptInStatus()) {
@@ -86,11 +91,11 @@ contract SwapAI is ISwapAI, KeeperCompatibleInterface {
       SwapUser[] memory currentUserDataOnly = new SwapUser[](1);
       currentUserDataOnly[0] = userData[msg.sender];
 
-      oracleCaller.trySwapManual(currentUserDataOnly, false);
+      oracleMaster.trySwapManual(currentUserDataOnly, false);
     }
 
     function swapAllUsersBalances(bool force) public override {
-      oracleCaller.trySwapAuto(getSwapEligibleUsers(), force); 
+      oracleMaster.trySwapAuto(getSwapEligibleUsers(), force);
     }
 
     function checkUpkeep(bytes calldata /* checkData */) external override returns (bool upkeepNeeded, bytes memory /* performData */) {
@@ -106,16 +111,22 @@ contract SwapAI is ISwapAI, KeeperCompatibleInterface {
     }
 
     /////////////////////////////////////////////////////
-    function depositTUSD() payable {
-      uint oldTUSDBalance = userData[msg.sender].TUSDBalance;
-      userData[msg.sender].TUSDBalance += msg.value;
-      emit DepositTUSD(oldTUSDBalance, userData[msg.sender].TUSDBalance);
+    function depositTUSD() payable public {
+      SwapUser user = userData[msg.sender];
+
+      uint oldTUSDBalance = user.getTUSDBalance();
+      user.setTUSDBalance(oldTUSDBalance + msg.value);
+
+      emit DepositTUSD(oldTUSDBalance, user.getTUSDBalance());
     }
 
-    function depositWBTC() payable {
-      uint oldWBTCBalance = userData[msg.sender].WBTCBalance;
-      userData[msg.sender].WBTCBalance += msg.value;
-      emit DepositWBTC(oldTUSDBalance, userData[msg.sender].TUSDBalance);
+    function depositWBTC() payable public {
+      SwapUser user = userData[msg.sender];
+
+      uint oldWBTCBalance = user.getWBTCBalance();
+      user.setWBTCBalance(oldWBTCBalance + msg.value);
+
+      emit DepositWBTC(oldWBTCBalance, user.getWBTCBalance());
     }
 
     function getContractTUSDBalance() internal view returns (uint) {
@@ -127,6 +138,6 @@ contract SwapAI is ISwapAI, KeeperCompatibleInterface {
     }
 
     function getContractETHBalance() internal view returns (uint) {
-      return IERC20(Constants.KOVAN_ETH).balanceOf(address(this));
+      return IERC20(Constants.KOVAN_WETH).balanceOf(address(this));
     }
 }

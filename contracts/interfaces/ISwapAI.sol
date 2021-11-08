@@ -10,7 +10,7 @@ interface ISwapAI {
 
   function swapAllUsersBalances(bool force) external;
 
-  function getUserBalance(bool force) external;
+  function fetchUserBalance() external;
 
   event CreateUser(
       bool createUserStatus
