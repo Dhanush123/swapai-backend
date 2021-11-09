@@ -1,17 +1,16 @@
-pragma solidity ^0.8.7;
-
-import "./SwapUser.sol";
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.6.12;
 
 interface ISwapAI {
   function createUser() external;
 
   function optInToggle() external;
 
-  function swapSingleUserBalance(bool force) external;
+  function swapSingleUserBalance() external;
 
   function swapAllUsersBalances(bool force) external;
 
-  function getUserBalance(bool force) external;
+  function fetchUserBalance() external;
 
   event CreateUser(
       bool createUserStatus

@@ -1,28 +1,52 @@
-pragma solidity ^0.8.7;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.6.12;
 
-import {Address} from "@openzeppelin/contracts/utils/Address.sol";
+import { ISwapUser } from "./interfaces/ISwapUser.sol";
 
-contract SwapUser {
-  using Address for address;
-  address userAddress;
-  bool optInStatus;
-  uint WBTCBalance;
-  uint TUSDBalance;
+contract SwapUser is ISwapUser {
+  address private userAddress;
+  bool private optInStatus;
+  uint private wbtcBalance;
+  uint private tusdBalance;
 
-  constructor(address _userAddress, bool _optInStatus) {
+  constructor(address _userAddress, bool _optInStatus) public {
     userAddress = _userAddress;
     optInStatus = _optInStatus;
   }
 
-  function getUserOptInStatus() internal view returns (bool) {
+  ///////////////
+  // USER INFO //
+  ///////////////
+
+  function getUserAddress() external override view returns (address) {
+    return userAddress;
+  }
+
+  function getUserOptInStatus() external override view returns (bool) {
     return optInStatus;
   }
 
-  function getUserWBTCBalance() internal view returns (uint) {
-    return WBTCBalance;
+  function toggleUserOptInStatus() external override {
+    optInStatus = !optInStatus;
   }
 
-  function getUserTUSDBalance() internal view returns (uint) {
-    return TUSDBalance;
+  ///////////////////
+  // USER BALANCES //
+  ///////////////////
+
+  function getWBTCBalance() external override view returns (uint) {
+    return wbtcBalance;
+  }
+
+  function setWBTCBalance(uint _newBalance) external override {
+    wbtcBalance = _newBalance;
+  }
+
+  function getTUSDBalance() external override view returns (uint) {
+    return tusdBalance;
+  }
+
+  function setTUSDBalance(uint _newBalance) external override {
+    tusdBalance = _newBalance;
   }
 }
