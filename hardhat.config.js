@@ -5,9 +5,7 @@ require("@nomiclabs/hardhat-ethers")
 
 require('dotenv').config()
 
-//const MAINNET_RPC_URL = process.env.MAINNET_RPC_URL || process.env.ALCHEMY_MAINNET_RPC_URL || "https://eth-mainnet.alchemyapi.io/v2/your-api-key"
 const KOVAN_RPC_URL = process.env.KOVAN_RPC_URL || "https://eth-kovan.alchemyapi.io/v2/your-api-key"
-// const MNEMONIC = process.env.MNEMONIC || "your mnemonic"
 const PRIVATE_KEY = process.env.PRIVATE_KEY || "your private key"
 
 module.exports = {
@@ -18,19 +16,8 @@ module.exports = {
     kovan: {
       url: KOVAN_RPC_URL,
       accounts: [PRIVATE_KEY],
-      // accounts: {
-      //   mnemonic: MNEMONIC,
-      // },
       saveDeployments: true,
     },
-    // mainnet: {
-    //   url: MAINNET_RPC_URL,
-    //   // accounts: [PRIVATE_KEY],
-    //   accounts: {
-    //     mnemonic: MNEMONIC,
-    //   },
-    //   saveDeployments: true,
-    // },
   },
   solidity: {
     compilers: [
@@ -38,7 +25,7 @@ module.exports = {
         version: "0.6.12",
         optimizer: {
           enabled: true,
-          runs: 200,
+          runs: 1000000,
         },
       }
     ]

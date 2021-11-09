@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.6.12;
+pragma experimental ABIEncoderV2;
 
 // 3rd-party library imports
-import { KeeperCompatibleInterface } from "@chainlink/contracts/src/v0.6/interfaces/KeeperCompatibleInterface.sol";
+// import { KeeperCompatibleInterface } from "@chainlink/contracts/src/v0.6/interfaces/KeeperCompatibleInterface.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 // 1st-party project imports
@@ -11,25 +12,30 @@ import { ISwapAI } from "./interfaces/ISwapAI.sol";
 import { SwapUser } from "./SwapUser.sol";
 import { OracleMaster } from "./OracleMaster.sol";
 
-contract SwapAI is ISwapAI, KeeperCompatibleInterface {
+// contract SwapAI is ISwapAI, KeeperCompatibleInterface {
+contract SwapAI is ISwapAI {
     address[] private userAddresses;
     mapping(address => SwapUser) private userData;
     OracleMaster internal oracleMaster;
 
-    /**
-    * Use an interval in seconds and a timestamp to slow execution of Upkeep
-    */
-    uint public immutable interval;
-    uint public lastTimeStamp;
+    // /**
+    // * Use an interval in seconds and a timestamp to slow execution of Upkeep
+    // */
+    // uint public immutable interval;
+    // uint public lastTimeStamp;
 
-    constructor(uint updateInterval) public {
-      interval = updateInterval;
-      lastTimeStamp = block.timestamp;
+    // constructor(uint updateInterval) public {
+    //   interval = updateInterval;
+    //   lastTimeStamp = block.timestamp;
+    // }
+
+    constructor() public {
     }
 
     function createUser() external override {
-      if (userData[msg.sender].getUserAddress() == address(0)) {
-        userData[msg.sender] = new SwapUser(msg.sender, true);
+      if (userData[msg.sender].userAddress == address(0)) {
+        userData[msg.sender].userAddress = msg.sender;
+        userData[msg.sender].optInStatus = true;
         userAddresses.push(msg.sender);
         emit CreateUser(true);
       } else {
@@ -39,20 +45,20 @@ contract SwapAI is ISwapAI, KeeperCompatibleInterface {
 
     function fetchUserBalance() external override {
       emit UserBalance(
-        userData[msg.sender].getTUSDBalance(),
-        userData[msg.sender].getWBTCBalance()
+        userData[msg.sender].tusdBalance,
+        userData[msg.sender].wbtcBalance
       );
     }
 
     function optInToggle() external override {
-      userData[msg.sender].toggleUserOptInStatus();
-      emit OptInToggle(userData[msg.sender].getUserOptInStatus());
+      userData[msg.sender].optInStatus = !userData[msg.sender].optInStatus;
+      emit OptInToggle(userData[msg.sender].optInStatus);
     }
 
     function isAtleastOneUserOptIn() private returns (bool) {
       bool result = false;
       for (uint i = 0; i < userAddresses.length; i++) {
-        if (userData[userAddresses[i]].getUserOptInStatus()) {
+        if (userData[userAddresses[i]].optInStatus) {
           result = true;
           break;
         }
@@ -68,8 +74,8 @@ contract SwapAI is ISwapAI, KeeperCompatibleInterface {
       uint numEligibleUsers = 0;
 
       for (uint i = 0; i < userAddresses.length; i++) {
-        SwapUser user = userData[userAddresses[i]];
-        if (user.getUserOptInStatus())
+        SwapUser memory user = userData[userAddresses[i]];
+        if (user.optInStatus)
           numEligibleUsers++;
       }
 
@@ -77,8 +83,8 @@ contract SwapAI is ISwapAI, KeeperCompatibleInterface {
 
       uint j = 0;
       for (uint i = 0; i < userAddresses.length; i++) {
-        SwapUser user = userData[userAddresses[i]];
-        if (user.getUserOptInStatus()) {
+        SwapUser memory user = userData[userAddresses[i]];
+        if (user.optInStatus) {
           eligibleUsers[j++] = user;
         }
       }
@@ -98,35 +104,35 @@ contract SwapAI is ISwapAI, KeeperCompatibleInterface {
       oracleMaster.trySwapAuto(getSwapEligibleUsers(), force);
     }
 
-    function checkUpkeep(bytes calldata /* checkData */) external override returns (bool upkeepNeeded, bytes memory /* performData */) {
-      bool hasIntervalPassed = (block.timestamp - lastTimeStamp) > interval;
-      upkeepNeeded = hasIntervalPassed && isAtleastOneUserOptIn();
-      return (upkeepNeeded, bytes(""));
-      // We don't use the checkData in this example. The checkData is defined when the Upkeep was registered.
-    }
+    // function checkUpkeep(bytes calldata /* checkData */) external override returns (bool upkeepNeeded, bytes memory /* performData */) {
+    //   bool hasIntervalPassed = (block.timestamp - lastTimeStamp) > interval;
+    //   upkeepNeeded = hasIntervalPassed && isAtleastOneUserOptIn();
+    //   return (upkeepNeeded, bytes(""));
+    //   // We don't use the checkData in this example. The checkData is defined when the Upkeep was registered.
+    // }
 
-    function performUpkeep(bytes calldata /* performData */) external override {
-      lastTimeStamp = block.timestamp;
-      swapAllUsersBalances(false);
-      // We don't use the performData in this example. The performData is generated by the Keeper's call to your checkUpkeep function
-    }
+    // function performUpkeep(bytes calldata /* performData */) external override {
+    //   lastTimeStamp = block.timestamp;
+    //   swapAllUsersBalances(false);
+    //   // We don't use the performData in this example. The performData is generated by the Keeper's call to your checkUpkeep function
+    // }
 
     function depositTUSD() payable public {
-      SwapUser user = userData[msg.sender];
+      SwapUser memory user = userData[msg.sender];
 
-      uint oldTUSDBalance = user.getTUSDBalance();
-      user.setTUSDBalance(oldTUSDBalance + msg.value);
+      uint oldTUSDBalance = user.tusdBalance;
+      user.tusdBalance = oldTUSDBalance + msg.value;
 
-      emit DepositTUSD(oldTUSDBalance, user.getTUSDBalance());
+      emit DepositTUSD(oldTUSDBalance, user.tusdBalance);
     }
 
     function depositWBTC() payable public {
-      SwapUser user = userData[msg.sender];
+      SwapUser memory user = userData[msg.sender];
 
-      uint oldWBTCBalance = user.getWBTCBalance();
-      user.setWBTCBalance(oldWBTCBalance + msg.value);
+      uint oldWBTCBalance = user.wbtcBalance;
+      user.wbtcBalance = oldWBTCBalance + msg.value;
 
-      emit DepositWBTC(oldWBTCBalance, user.getWBTCBalance());
+      emit DepositWBTC(oldWBTCBalance, user.wbtcBalance);
     }
 
     function getContractTUSDBalance() internal view returns (uint) {

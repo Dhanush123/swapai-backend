@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.6.12;
+pragma experimental ABIEncoderV2;
 
 // 3rd-party library imports
 import { UniswapV2Router02 } from "@sushiswap/core/contracts/uniswapv2/UniswapV2Router02.sol";
@@ -8,7 +9,7 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 // 1st-party project imports
 import { Constants } from "./Constants.sol";
-import { ISwapUser } from "./interfaces/ISwapUser.sol";
+import { SwapUser } from "./SwapUser.sol";
 
 contract TokenSwapper {
   using SafeERC20 for IERC20;
@@ -66,10 +67,10 @@ contract TokenSwapper {
   /*
    * Swapping TUSD -> BTC (WBTC)
    */
-  function _swapTUSDtoWBTC(ISwapUser _user) internal returns (uint) {
+  function _swapTUSDtoWBTC(SwapUser memory _user) internal returns (uint) {
     // require(_user.tusdBalance > 0, 'User does not have any TUSD to swap to WBTC');
 
-    if (_user.getTUSDBalance() > 0) {
+    if (_user.tusdBalance > 0) {
       // Swap from TUSD in favor of WBTC (manual swap)
 
       // HACK: This form of array initialization is used to bypass a type cast error
@@ -78,20 +79,20 @@ contract TokenSwapper {
       path[1] = Constants.KOVAN_WETH;
       path[2] = Constants.KOVAN_WBTC;
 
-      uint finalWbtcBalance = _swapTokens(_user.getUserAddress(), _user.getTUSDBalance(), path);
+      uint finalWbtcBalance = _swapTokens(_user.userAddress, _user.tusdBalance, path);
 
-      _user.setTUSDBalance(0);
-      _user.setWBTCBalance(finalWbtcBalance);
+      _user.tusdBalance = 0;
+      _user.wbtcBalance = finalWbtcBalance;
     }
   }
 
   /*
    * Swapping BTC (WBTC) -> TUSD
    */
-  function _swapWBTCtoTUSD(ISwapUser _user) internal returns (uint) {
+  function _swapWBTCtoTUSD(SwapUser memory _user) internal returns (uint) {
     // require(_user.wbtcBalance > 0, 'User does not have any WBTC to swap to TUSD');
 
-    if (_user.getWBTCBalance() > 0) {
+    if (_user.wbtcBalance > 0) {
       // Swap from WBTC in favor of TUSD (manual swap)
 
       // HACK: This form of array initialization is used to bypass a type cast error
@@ -100,14 +101,14 @@ contract TokenSwapper {
       path[1] = Constants.KOVAN_WETH;
       path[2] = Constants.KOVAN_TUSD;
 
-      uint finalTusdBalance = _swapTokens(_user.getUserAddress(), _user.getWBTCBalance(), path);
+      uint finalTusdBalance = _swapTokens(_user.userAddress, _user.wbtcBalance, path);
 
-      _user.setTUSDBalance(finalTusdBalance);
-      _user.setWBTCBalance(0);
+      _user.tusdBalance = finalTusdBalance;
+      _user.wbtcBalance = 0;
     }
   }
 
-  function doManualSwap(ISwapUser _user, bool swapTUSD) external {
+  function doManualSwap(SwapUser memory _user, bool swapTUSD) external {
     if (swapTUSD) {
       // Swap from TUSD in favor of WBTC (manual swap)
       _swapTUSDtoWBTC(_user);
@@ -117,7 +118,7 @@ contract TokenSwapper {
     }
   }
 
-  function doAutoSwap(ISwapUser _user, bool isPositiveFuture, bool isNegativeFuture) external {
+  function doAutoSwap(SwapUser memory _user, bool isPositiveFuture, bool isNegativeFuture) external {
     if (isPositiveFuture) {
       // Swap from TUSD in favor of WBTC to capitalize on gains
       _swapTUSDtoWBTC(_user);

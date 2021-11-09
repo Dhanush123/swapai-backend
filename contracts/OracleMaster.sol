@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.6.12;
+pragma experimental ABIEncoderV2;
 
 // 3rd-party library imports
 import { Chainlink, ChainlinkClient } from "@chainlink/contracts/src/v0.6/ChainlinkClient.sol";
@@ -37,30 +38,35 @@ contract OracleMaster is ChainlinkClient {
 
   // Should only be called by keeper
   function trySwapAuto(SwapUser[] memory _currentUsersToSwap, bool _force) external {
-    currentUsersToSwap = _currentUsersToSwap;
+    for (uint i = 0; i < _currentUsersToSwap.length; i++) {
+      currentUsersToSwap[i] = _currentUsersToSwap[i];
+    }
     force = _force;
 
     startPredictionAnalysis();
   }
 
   function trySwapManual(SwapUser[] memory _currentUsersToSwap, bool swapToTUSD) external {
-    currentUsersToSwap = _currentUsersToSwap;
-    
+    for (uint i = 0; i < _currentUsersToSwap.length; i++) {
+      currentUsersToSwap[i] = _currentUsersToSwap[i];
+    }    
     for (uint i = 0; i < currentUsersToSwap.length; i++) {
       swapper.doManualSwap(currentUsersToSwap[i], swapToTUSD);
     }
   }
 
   function shouldSwap() private {
-    bool isInsufficientTUSDRatio = tusdRatio < 9999; // 10000 means 1:1 asset:reserve ratio, less means $ assets > $ reserves
+    // bool isInsufficientTUSDRatio = tusdRatio < 9999; // 10000 means 1:1 asset:reserve ratio, less means $ assets > $ reserves
     bool isNegativeBTCSentiment = btcSentiment < 2500; // 5000 means 0.5 sentiment from range [-1,1]
     bool isBTCPriceGoingDown = (btcPriceCurrent / btcPricePrediction * 10**8) > 105000000; // check if > 5% decrease
-    bool isNegativeFuture = isInsufficientTUSDRatio || isNegativeBTCSentiment || isBTCPriceGoingDown;
+    // bool isNegativeFuture = isInsufficientTUSDRatio || isNegativeBTCSentiment || isBTCPriceGoingDown;
+    bool isNegativeFuture = isNegativeBTCSentiment || isBTCPriceGoingDown;
     
-    bool isSufficientTUSDRatio = tusdRatio >= 10000; 
+    // bool isSufficientTUSDRatio = tusdRatio >= 10000; 
     bool isPositiveBTCSentiment = btcSentiment > 7500; 
     bool isBTCPriceGoingUp = (btcPriceCurrent / btcPricePrediction * 10**8) < 95000000; // check if > 5% increase
-    bool isPositiveFuture = isSufficientTUSDRatio && isPositiveBTCSentiment && isBTCPriceGoingUp;
+    // bool isPositiveFuture = isSufficientTUSDRatio && isPositiveBTCSentiment && isBTCPriceGoingUp;
+    bool isPositiveFuture = isPositiveBTCSentiment && isBTCPriceGoingUp;
     
     for (uint i = 0; i < currentUsersToSwap.length; i++) {
       swapper.doAutoSwap(currentUsersToSwap[i], isPositiveFuture, isNegativeFuture);
@@ -70,7 +76,8 @@ contract OracleMaster is ChainlinkClient {
   }
 
   function startPredictionAnalysis() private {
-    requestTUSDRatio();
+    // requestTUSDRatio();
+    requestBTCSentiment();
   }
 
   /////////////////////
