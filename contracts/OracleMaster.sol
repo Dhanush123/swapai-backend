@@ -5,6 +5,8 @@ pragma experimental ABIEncoderV2;
 // 3rd-party library imports
 import { Chainlink, ChainlinkClient } from "@chainlink/contracts/src/v0.6/ChainlinkClient.sol";
 import { AggregatorV3Interface } from "@chainlink/contracts/src/v0.6/interfaces/AggregatorV3Interface.sol";
+import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 
 // 1st-party project imports
 import { Constants } from "./Constants.sol";
@@ -13,6 +15,9 @@ import { TokenSwapper } from "./TokenSwapper.sol";
 
 // Chainlink oracle code goes here
 contract OracleMaster is ChainlinkClient {
+  using SafeMath for uint;
+  using Address for address;
+  
   uint private tusdRatio;
   uint private btcSentiment;
   uint private btcPriceCurrent;
@@ -88,7 +93,7 @@ contract OracleMaster is ChainlinkClient {
   
   function requestTUSDRatio() internal {
     Chainlink.Request memory req = buildChainlinkRequest(Constants.TUSD_RATIO_JOB_ID, address(this), this.getTUSDRatio.selector);
-    sendChainlinkRequestTo(Constants.TUSD_RATIO_ORACLE_ADDR, req, 1 * Constants.LINK);
+    sendChainlinkRequestTo(Constants.TUSD_RATIO_ORACLE_ADDR, req, Constants.LINK_PAYMENT);
   }
 
   function getTUSDRatio(bytes32 _requestID, uint _ratio) public recordChainlinkFulfillment(_requestID) {
@@ -104,7 +109,7 @@ contract OracleMaster is ChainlinkClient {
     Chainlink.Request memory req = buildChainlinkRequest(Constants.SENTIMENT_JOB_ID, address(this), this.getBTCSentiment.selector);
     req.add("token", "BTC");
     req.add("period", "24");
-    sendChainlinkRequestTo(Constants.SENTIMENT_ORACLE_ADDR, req, 0.1 * Constants.LINK);
+    sendChainlinkRequestTo(Constants.SENTIMENT_ORACLE_ADDR, req, Constants.LINK_PAYMENT);
   }
 
   function getBTCSentiment(bytes32 _requestID, uint _btcSentiment) public recordChainlinkFulfillment(_requestID) {
@@ -130,7 +135,7 @@ contract OracleMaster is ChainlinkClient {
   function requestBTCPricePrediction() internal {
     Chainlink.Request memory req = buildChainlinkRequest(Constants.PRICE_JOB_ID, address(this), this.getBTCPricePrediction.selector);
     req.add("days", "1");
-    sendChainlinkRequestTo(Constants.PRICE_ORACLE_ADDR, req, 1 * Constants.LINK);
+    sendChainlinkRequestTo(Constants.PRICE_ORACLE_ADDR, req, Constants.LINK_PAYMENT);
   }
 
   function getBTCPricePrediction(bytes32 _requestID, uint _btcPricePrediction) public recordChainlinkFulfillment(_requestID) {
