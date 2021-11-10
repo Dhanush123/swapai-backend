@@ -9,141 +9,138 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 // 1st-party project imports
 import { Constants } from "./Constants.sol";
 import { ISwapAI } from "./interfaces/ISwapAI.sol";
-import { SwapUser } from "./SwapUser.sol";
 import { OracleMaster } from "./OracleMaster.sol";
+import { SwapUser } from "./DataStructures.sol";
 
 // contract SwapAI is ISwapAI, KeeperCompatibleInterface {
 contract SwapAI is ISwapAI {
-    address[] private userAddresses;
-    mapping(address => SwapUser) private userData;
-    OracleMaster internal oracleMaster;
+  address[] private userAddresses;
+  mapping(address => SwapUser) private userData;
+  OracleMaster internal oracleMaster;
 
-    // /**
-    // * Use an interval in seconds and a timestamp to slow execution of Upkeep
-    // */
-    // uint public immutable interval;
-    // uint public lastTimeStamp;
+  // /**
+  // * Use an interval in seconds and a timestamp to slow execution of Upkeep
+  // */
+  // uint public immutable interval;
+  // uint public lastTimeStamp;
 
-    // constructor(uint updateInterval) public {
-    //   interval = updateInterval;
-    //   lastTimeStamp = block.timestamp;
-    // }
+  // constructor(uint updateInterval) public {
+  //   interval = updateInterval;
+  //   lastTimeStamp = block.timestamp;
+  // }
 
-    constructor() public {
+  function createUser() external override {
+    if (userData[msg.sender].userAddress == address(0)) {
+      userData[msg.sender].userAddress = msg.sender;
+      userData[msg.sender].optInStatus = true;
+      userAddresses.push(msg.sender);
+      emit CreateUser(true);
+    } else {
+      emit CreateUser(false);
     }
+  }
 
-    function createUser() external override {
-      if (userData[msg.sender].userAddress == address(0)) {
-        userData[msg.sender].userAddress = msg.sender;
-        userData[msg.sender].optInStatus = true;
-        userAddresses.push(msg.sender);
-        emit CreateUser(true);
-      } else {
-        emit CreateUser(false);
+  function fetchUserBalance() external override {
+    emit UserBalance(
+      userData[msg.sender].tusdBalance,
+      userData[msg.sender].wbtcBalance
+    );
+  }
+
+  function optInToggle() external override {
+    userData[msg.sender].optInStatus = !userData[msg.sender].optInStatus;
+    emit OptInToggle(userData[msg.sender].optInStatus);
+  }
+
+  function isAtleastOneUserOptIn() private returns (bool) {
+    bool result = false;
+    for (uint i = 0; i < userAddresses.length; i++) {
+      if (userData[userAddresses[i]].optInStatus) {
+        result = true;
+        break;
       }
     }
 
-    function fetchUserBalance() external override {
-      emit UserBalance(
-        userData[msg.sender].tusdBalance,
-        userData[msg.sender].wbtcBalance
-      );
+    emit SwapEligibleUsersExist(result);
+    return result;
+  }
+
+  function getSwapEligibleUsers() public view returns (SwapUser[] memory) {
+    // NOTE: To avoid having a storage array (i.e. extra gas cost), we're counting the items
+    // to be filtered and then instantiating a memory-based array
+    uint numEligibleUsers = 0;
+
+    for (uint i = 0; i < userAddresses.length; i++) {
+      SwapUser memory user = userData[userAddresses[i]];
+      if (user.optInStatus)
+        numEligibleUsers++;
     }
 
-    function optInToggle() external override {
-      userData[msg.sender].optInStatus = !userData[msg.sender].optInStatus;
-      emit OptInToggle(userData[msg.sender].optInStatus);
-    }
+    SwapUser[] memory eligibleUsers = new SwapUser[](numEligibleUsers);
 
-    function isAtleastOneUserOptIn() private returns (bool) {
-      bool result = false;
-      for (uint i = 0; i < userAddresses.length; i++) {
-        if (userData[userAddresses[i]].optInStatus) {
-          result = true;
-          break;
-        }
+    uint j = 0;
+    for (uint i = 0; i < userAddresses.length; i++) {
+      SwapUser memory user = userData[userAddresses[i]];
+      if (user.optInStatus) {
+        eligibleUsers[j++] = user;
       }
-
-      emit SwapEligibleUsersExist(result);
-      return result;
     }
 
-    function getSwapEligibleUsers() public view returns (SwapUser[] memory) {
-      // NOTE: To avoid having a storage array (i.e. extra gas cost), we're counting the items
-      // to be filtered and then instantiating a memory-based array
-      uint numEligibleUsers = 0;
+    return eligibleUsers;
+  }
 
-      for (uint i = 0; i < userAddresses.length; i++) {
-        SwapUser memory user = userData[userAddresses[i]];
-        if (user.optInStatus)
-          numEligibleUsers++;
-      }
+  function swapSingleUserBalance() external override {
+    // HACK: This form of array initialization is used to bypass a type cast error
+    SwapUser[] memory currentUserDataOnly = new SwapUser[](1);
+    currentUserDataOnly[0] = userData[msg.sender];
 
-      SwapUser[] memory eligibleUsers = new SwapUser[](numEligibleUsers);
+    oracleMaster.trySwapManual(currentUserDataOnly, false);
+  }
 
-      uint j = 0;
-      for (uint i = 0; i < userAddresses.length; i++) {
-        SwapUser memory user = userData[userAddresses[i]];
-        if (user.optInStatus) {
-          eligibleUsers[j++] = user;
-        }
-      }
+  function swapAllUsersBalances(bool force) public override {
+    oracleMaster.trySwapAuto(getSwapEligibleUsers(), force);
+  }
 
-      return eligibleUsers;
-    }
+  // function checkUpkeep(bytes calldata /* checkData */) external override returns (bool upkeepNeeded, bytes memory /* performData */) {
+  //   bool hasIntervalPassed = (block.timestamp - lastTimeStamp) > interval;
+  //   upkeepNeeded = hasIntervalPassed && isAtleastOneUserOptIn();
+  //   return (upkeepNeeded, bytes(""));
+  //   // We don't use the checkData in this example. The checkData is defined when the Upkeep was registered.
+  // }
 
-    function swapSingleUserBalance() external override {
-      // HACK: This form of array initialization is used to bypass a type cast error
-      SwapUser[] memory currentUserDataOnly = new SwapUser[](1);
-      currentUserDataOnly[0] = userData[msg.sender];
+  // function performUpkeep(bytes calldata /* performData */) external override {
+  //   lastTimeStamp = block.timestamp;
+  //   swapAllUsersBalances(false);
+  //   // We don't use the performData in this example. The performData is generated by the Keeper's call to your checkUpkeep function
+  // }
 
-      oracleMaster.trySwapManual(currentUserDataOnly, false);
-    }
+  function depositTUSD() payable public {
+    SwapUser memory user = userData[msg.sender];
 
-    function swapAllUsersBalances(bool force) public override {
-      oracleMaster.trySwapAuto(getSwapEligibleUsers(), force);
-    }
+    uint oldTUSDBalance = user.tusdBalance;
+    user.tusdBalance = oldTUSDBalance + msg.value;
 
-    // function checkUpkeep(bytes calldata /* checkData */) external override returns (bool upkeepNeeded, bytes memory /* performData */) {
-    //   bool hasIntervalPassed = (block.timestamp - lastTimeStamp) > interval;
-    //   upkeepNeeded = hasIntervalPassed && isAtleastOneUserOptIn();
-    //   return (upkeepNeeded, bytes(""));
-    //   // We don't use the checkData in this example. The checkData is defined when the Upkeep was registered.
-    // }
+    emit DepositTUSD(oldTUSDBalance, user.tusdBalance);
+  }
 
-    // function performUpkeep(bytes calldata /* performData */) external override {
-    //   lastTimeStamp = block.timestamp;
-    //   swapAllUsersBalances(false);
-    //   // We don't use the performData in this example. The performData is generated by the Keeper's call to your checkUpkeep function
-    // }
+  function depositWBTC() payable public {
+    SwapUser memory user = userData[msg.sender];
 
-    function depositTUSD() payable public {
-      SwapUser memory user = userData[msg.sender];
+    uint oldWBTCBalance = user.wbtcBalance;
+    user.wbtcBalance = oldWBTCBalance + msg.value;
 
-      uint oldTUSDBalance = user.tusdBalance;
-      user.tusdBalance = oldTUSDBalance + msg.value;
+    emit DepositWBTC(oldWBTCBalance, user.wbtcBalance);
+  }
 
-      emit DepositTUSD(oldTUSDBalance, user.tusdBalance);
-    }
+  function getContractTUSDBalance() internal view returns (uint) {
+    return IERC20(Constants.KOVAN_TUSD).balanceOf(address(this));
+  }
 
-    function depositWBTC() payable public {
-      SwapUser memory user = userData[msg.sender];
+  function getContractWBTCBalance() internal view returns (uint) {
+    return IERC20(Constants.KOVAN_WBTC).balanceOf(address(this));
+  }
 
-      uint oldWBTCBalance = user.wbtcBalance;
-      user.wbtcBalance = oldWBTCBalance + msg.value;
-
-      emit DepositWBTC(oldWBTCBalance, user.wbtcBalance);
-    }
-
-    function getContractTUSDBalance() internal view returns (uint) {
-      return IERC20(Constants.KOVAN_TUSD).balanceOf(address(this));
-    }
-
-    function getContractWBTCBalance() internal view returns (uint) {
-      return IERC20(Constants.KOVAN_WBTC).balanceOf(address(this));
-    }
-
-    function getContractETHBalance() internal view returns (uint) {
-      return IERC20(Constants.KOVAN_WETH).balanceOf(address(this));
-    }
+  function getContractETHBalance() internal view returns (uint) {
+    return IERC20(Constants.KOVAN_WETH).balanceOf(address(this));
+  }
 }

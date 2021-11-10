@@ -8,7 +8,7 @@ import { AggregatorV3Interface } from "@chainlink/contracts/src/v0.6/interfaces/
 
 // 1st-party project imports
 import { Constants } from "./Constants.sol";
-import { SwapUser } from "./SwapUser.sol";
+import { SwapUser } from "./DataStructures.sol";
 import { TokenSwapper } from "./TokenSwapper.sol";
 
 // Chainlink oracle code goes here
@@ -41,6 +41,7 @@ contract OracleMaster is ChainlinkClient {
     for (uint i = 0; i < _currentUsersToSwap.length; i++) {
       currentUsersToSwap[i] = _currentUsersToSwap[i];
     }
+
     force = _force;
 
     startPredictionAnalysis();
@@ -49,7 +50,8 @@ contract OracleMaster is ChainlinkClient {
   function trySwapManual(SwapUser[] memory _currentUsersToSwap, bool swapToTUSD) external {
     for (uint i = 0; i < _currentUsersToSwap.length; i++) {
       currentUsersToSwap[i] = _currentUsersToSwap[i];
-    }    
+    }
+
     for (uint i = 0; i < currentUsersToSwap.length; i++) {
       swapper.doManualSwap(currentUsersToSwap[i], swapToTUSD);
     }

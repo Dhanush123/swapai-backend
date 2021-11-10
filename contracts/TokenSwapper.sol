@@ -9,14 +9,10 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 // 1st-party project imports
 import { Constants } from "./Constants.sol";
-import { SwapUser } from "./SwapUser.sol";
+import { SwapUser } from "./DataStructures.sol";
 
 contract TokenSwapper {
   using SafeERC20 for IERC20;
-
-  ////////////////////
-  // USER FUNCTIONS //
-  ////////////////////
 
   function depositTUSD(uint _inputAmt) external {
     IERC20 TUSD = IERC20(Constants.KOVAN_TUSD);
@@ -30,10 +26,6 @@ contract TokenSwapper {
   function withdrawTUSD() internal {
     // TODO
   }
-
-  //////////////////////////
-  // AUTONOMOUS FUNCTIONS //
-  //////////////////////////
 
   /*
    * Generic function to approve and perform swap from starting to ending token
@@ -110,10 +102,10 @@ contract TokenSwapper {
 
   function doManualSwap(SwapUser memory _user, bool swapTUSD) external {
     if (swapTUSD) {
-      // Swap from TUSD in favor of WBTC (manual swap)
+      // Swap from TUSD to WBTC (manual swap)
       _swapTUSDtoWBTC(_user);
     } else {
-      // Swap from WBTC in favor of TUSD (manual swap)
+      // Swap from WBTC to TUSD (manual swap)
       _swapWBTCtoTUSD(_user);
     }
   }
