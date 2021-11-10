@@ -4,7 +4,11 @@
   "description": "Chainlink Fall Hackathon 2021 project backend",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "compile": "npx hardhat compile --force",
+    "clean": "npx hardhat clean",
+    "deploy-local": "npx hardhat run scripts/deploy.js --network kovan",
+    "deploy-kovan": "npx hardhat run scripts/deploy.js --network kovan",
+    "test": "npx hardhat test"
   },
   "repository": {
     "type": "git",

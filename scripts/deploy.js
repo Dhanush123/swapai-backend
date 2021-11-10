@@ -5,11 +5,8 @@ async function main() {
 
   // ethers is avaialble in the global scope
   const [deployer] = await ethers.getSigners();
-  console.log(
-    'Deploying the contracts with the account:',
-    await deployer.getAddress()
-  );
 
+  console.log('Deploying the contracts with the account:', (await deployer.getAddress()));
   console.log('Account balance:', (await deployer.getBalance()).toString());
 
   const SwapAI = await ethers.getContractFactory(PROJECT_NAME);
