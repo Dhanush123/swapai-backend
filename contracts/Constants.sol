@@ -17,7 +17,8 @@ library Constants {
   uint public constant TX_DEF_EXPIRY = 1 days;
   uint public constant MIN_OUTPUT_AMT = 1;
 
-  uint public constant LINK_PAYMENT = 0.01 * 1 ether;
+  uint public constant ONE_TENTH_LINK_PAYMENT = 0.1 * 1 ether;
+  uint public constant ONE_LINK_PAYMENT = 1 ether;
 
   // FIXME: replace below address with custom adapter address
   address public constant TUSD_RATIO_ORACLE_ADDR = 0xfF07C97631Ff3bAb5e5e5660Cdf47AdEd8D4d4Fd;
