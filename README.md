@@ -12,7 +12,7 @@ dependencies:
 
 ```sh
 git clone https://github.com/Dhanush123/swapai-backend.git
-cd stableratioswap-backend
+cd swapai-backend
 npm install
 ```
 
