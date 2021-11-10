@@ -65,7 +65,7 @@ contract OracleMasterV3 is ChainlinkClient {
     //   this.getTUSDRatio.selector,
 
     //   Constants.TUSD_RATIO_ORACLE_ADDR,
-    //   Constants.ORACLE_FEE
+    //   1 * Constants.LINK
     // );
 
     // Add Job for BTC Sentiment Analyis
@@ -75,7 +75,7 @@ contract OracleMasterV3 is ChainlinkClient {
       this.getBTCSentiment.selector,
 
       Constants.SENTIMENT_ORACLE_ADDR,
-      Constants.ORACLE_FEE
+      0.1 * Constants.LINK
     );
 
     // Add Job for BTC Price Predictions
@@ -85,7 +85,7 @@ contract OracleMasterV3 is ChainlinkClient {
       this.getBTCPricePrediction.selector,
 
       Constants.PRICE_ORACLE_ADDR,
-      Constants.ORACLE_FEE
+      1 * Constants.LINK
     );
 
     // Execute all jobs

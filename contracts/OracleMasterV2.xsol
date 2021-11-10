@@ -55,7 +55,7 @@ contract OracleMasterV2 is ChainlinkClient {
   //   sendChainlinkRequestTo(
   //     Constants.TUSD_RATIO_ORACLE_ADDR,
   //     req,
-  //     Constants.ORACLE_FEE
+  //     1 * Constants.LINK
   //   );
   // }
 
@@ -81,7 +81,7 @@ contract OracleMasterV2 is ChainlinkClient {
     sendChainlinkRequestTo(
       Constants.SENTIMENT_ORACLE_ADDR,
       req,
-      Constants.ORACLE_FEE
+      0.1 * Constants.LINK
     );
   }
 
@@ -119,7 +119,7 @@ contract OracleMasterV2 is ChainlinkClient {
     sendChainlinkRequestTo(
       Constants.PRICE_ORACLE_ADDR,
       req,
-      Constants.ORACLE_FEE
+      1 * Constants.LINK
     );
   }
 
