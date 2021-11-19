@@ -6,8 +6,8 @@
   "scripts": {
     "compile": "npx hardhat compile --force",
     "clean": "npx hardhat clean",
-    "deploy-local": "npx hardhat run scripts/deploy.js --network kovan",
-    "deploy-kovan": "npx hardhat run scripts/deploy.js --network kovan",
+    "deploy-swapper": "npx hardhat run scripts/deploy-swapper.js --network kovan",
+    "deploy-tokens": "npx hardhat run scripts/deploy-tokens.js --network kovan",
     "test": "npx hardhat test"
   },
   "repository": {
