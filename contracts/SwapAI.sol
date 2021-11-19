@@ -127,7 +127,7 @@ contract SwapAI is ISwapAI, Ownable {
   }
 
   function depositWBTC(uint depositAmount) public { 
-    require(IERC20(Constants.KOVAN_WBTC).transferFrom(msg.sender, address(this), depositAmount));
+    require(IERC20(Constants.KOVAN_BTC).transferFrom(msg.sender, address(this), depositAmount));
 
     SwapUser memory user = userData[msg.sender];
 
@@ -142,10 +142,6 @@ contract SwapAI is ISwapAI, Ownable {
   }
 
   function getContractWBTCBalance() internal view returns (uint) {
-    return IERC20(Constants.KOVAN_WBTC).balanceOf(address(this));
-  }
-
-  function getContractETHBalance() internal view returns (uint) {
-    return IERC20(Constants.KOVAN_WETH).balanceOf(address(this));
+    return IERC20(Constants.KOVAN_BTC).balanceOf(address(this));
   }
 }

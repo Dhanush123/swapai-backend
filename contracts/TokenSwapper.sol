@@ -3,7 +3,7 @@ pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
 
 // 3rd-party library imports
-import { UniswapV2Router02 } from "@sushiswap/core/contracts/uniswapv2/UniswapV2Router02.sol";
+import { IUniswapV2Router02 } from "@sushiswap/core/contracts/uniswapv2/interfaces/IUniswapV2Router02.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
@@ -13,19 +13,6 @@ import { SwapUser } from "./DataStructures.sol";
 
 contract TokenSwapper {
   using SafeERC20 for IERC20;
-
-  function depositTUSD(uint _inputAmt) external {
-    IERC20 TUSD = IERC20(Constants.KOVAN_TUSD);
-
-    require(
-      TUSD.transferFrom(msg.sender, address(this), _inputAmt),
-      'Transfering of funds to contract failed.'
-    );
-  }
-
-  function withdrawTUSD() internal {
-    // TODO
-  }
 
   /*
    * Generic function to approve and perform swap from starting to ending token
@@ -39,9 +26,8 @@ contract TokenSwapper {
       'Approval for swapping from starting token failed.'
     );
 
-    UniswapV2Router02 swapRouter = new UniswapV2Router02(
-      Constants.SUSHIV2_ROUTER02_ADDRESS,
-      address(0) // TODO: FIX THIS
+    IUniswapV2Router02 swapRouter = IUniswapV2Router02(
+      Constants.SUSHIV2_ROUTER02_ADDRESS
     );
 
     // Finally, perform the swap from starting to ending token via the token path specified
@@ -66,10 +52,9 @@ contract TokenSwapper {
       // Swap from TUSD in favor of WBTC (manual swap)
 
       // HACK: This form of array initialization is used to bypass a type cast error
-      address[] memory path = new address[](3);
+      address[] memory path = new address[](2);
       path[0] = Constants.KOVAN_TUSD;
-      path[1] = Constants.KOVAN_WETH;
-      path[2] = Constants.KOVAN_WBTC;
+      path[1] = Constants.KOVAN_BTC;
 
       uint finalWbtcBalance = _swapTokens(_user.userAddress, _user.tusdBalance, path);
 
@@ -88,10 +73,9 @@ contract TokenSwapper {
       // Swap from WBTC in favor of TUSD (manual swap)
 
       // HACK: This form of array initialization is used to bypass a type cast error
-      address[] memory path = new address[](3);
-      path[0] = Constants.KOVAN_WBTC;
-      path[1] = Constants.KOVAN_WETH;
-      path[2] = Constants.KOVAN_TUSD;
+      address[] memory path = new address[](2);
+      path[0] = Constants.KOVAN_BTC;
+      path[1] = Constants.KOVAN_TUSD;
 
       uint finalTusdBalance = _swapTokens(_user.userAddress, _user.wbtcBalance, path);
 
