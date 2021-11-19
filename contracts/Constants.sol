@@ -1,13 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.6.12;
 
-import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
-import {Address} from "@openzeppelin/contracts/utils/Address.sol";
-
 library Constants {
-  using SafeMath for uint;
-  using Address for address;
-  
   address public constant SUSHIV2_ROUTER02_ADDRESS = 0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F;
 
   address public constant KOVAN_TUSD = 0x016750AC630F711882812f24Dba6c95b9D35856d;

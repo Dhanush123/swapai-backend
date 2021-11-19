@@ -6,16 +6,12 @@ pragma experimental ABIEncoderV2;
 import { UniswapV2Router02 } from "@sushiswap/core/contracts/uniswapv2/UniswapV2Router02.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
-import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 
 // 1st-party project imports
 import { Constants } from "./Constants.sol";
 import { SwapUser } from "./DataStructures.sol";
 
 contract TokenSwapper {
-  using SafeMath for uint;
-  using Address for address;
   using SafeERC20 for IERC20;
 
   function depositTUSD(uint _inputAmt) external {

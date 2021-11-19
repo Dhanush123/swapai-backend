@@ -5,8 +5,6 @@ pragma experimental ABIEncoderV2;
 // 3rd-party library imports
 import { Chainlink, ChainlinkClient } from "@chainlink/contracts/src/v0.6/ChainlinkClient.sol";
 import { AggregatorV3Interface } from "@chainlink/contracts/src/v0.6/interfaces/AggregatorV3Interface.sol";
-import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
-import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 
 // 1st-party project imports
 import { Constants } from "./Constants.sol";
@@ -15,9 +13,6 @@ import { TokenSwapper } from "./TokenSwapper.sol";
 
 // Chainlink oracle code goes here
 contract OracleMaster is ChainlinkClient {
-  using SafeMath for uint;
-  using Address for address;
-  
   uint private tusdRatio;
   uint private btcSentiment;
   uint private btcPriceCurrent;

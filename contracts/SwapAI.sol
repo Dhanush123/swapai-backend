@@ -5,9 +5,7 @@ pragma experimental ABIEncoderV2;
 // 3rd-party library imports
 // import { KeeperCompatibleInterface } from "@chainlink/contracts/src/v0.6/interfaces/KeeperCompatibleInterface.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
-import {Address} from "@openzeppelin/contracts/utils/Address.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
 // 1st-party project imports
 import { Constants } from "./Constants.sol";
@@ -17,9 +15,6 @@ import { SwapUser } from "./DataStructures.sol";
 
 // contract SwapAI is ISwapAI, KeeperCompatibleInterface {
 contract SwapAI is ISwapAI, Ownable {
-  using SafeMath for uint;
-  using Address for address;
-
   address[] private userAddresses;
   mapping(address => SwapUser) private userData;
   OracleMaster internal oracleMaster;
