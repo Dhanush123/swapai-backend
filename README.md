@@ -16,9 +16,12 @@ cd swapai-backend
 npm install
 ```
 
-Then to deploy the contract to Kovan run the following (it is assumed you've put your credentials in a .env in the backend repo's root folder):
+Then to deploy the contracts to Kovan run the following (it is assumed you've put your credentials in a .env in the backend repo's root folder):
 ```sh
-npm run deploy-kovan
+npm run deploy-tokens
+npm run deploy-pool-liquifier
+npm run add-liquidity
+npm run deploy-swapper
 ```
 
 To locally tinker with and run the frontend, in another terminal, run the following commands:
@@ -31,3 +34,34 @@ npm start
 ```
 
 Note: Each time you redeploy the contract or delete the ```/contracts``` folder in the frontend repo, you will need to stop and restart the frontend.
+
+## Commands
+
+```bash
+# Force compile all contracts
+npm run compile
+
+# Clean compiled artifacts
+npm run clean
+
+# Deploy a new set of fake TUSD and WBTC tokens on Kovan
+npm run deploy-tokens
+
+# Deploy a new version of PoolLiquifier on Kovan. Used for adding/removing liquidity to token pair
+npm run deploy-pool-liquifier
+
+# Use the pool liquifier contract on Kovan to *add* liquidity to the token pair
+npm run add-liquidity
+
+# Use the pool liquifier contract on Kovan to *remove* liquidity to the token pair
+npm run remove-liquidity
+
+# Deploy a new version of SwapAI on Kovan. This is the main contract on the backend side
+npm run deploy-swapper
+
+# Swap some TUSD to WBTC
+npm run swap-to-wbtc
+
+# Swap some WBTC to TUSD
+npm run swap-to-tusd
+```

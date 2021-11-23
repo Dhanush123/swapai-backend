@@ -2,19 +2,23 @@
   "name": "swapai-backend",
   "version": "1.0.0",
   "description": "Chainlink Fall Hackathon 2021 project backend",
+  "author": "@tejashah88 & @Dhanush123",
   "main": "index.js",
   "scripts": {
     "compile": "npx hardhat compile --force",
     "clean": "npx hardhat clean",
-    "deploy-swapper": "npx hardhat run scripts/deploy-swapper.js --network kovan",
-    "deploy-tokens": "npx hardhat run scripts/deploy-tokens.js --network kovan",
-    "test": "npx hardhat test"
+    "deploy-tokens": "npx hardhat run scripts/01-deploy-tokens.js --network kovan",
+    "deploy-pool-liquifier": "npx hardhat run scripts/02-deploy-pool-liquifier.js --network kovan",
+    "add-liquidity": "npx hardhat run scripts/03-add-liquidity.js --network kovan",
+    "remove-liquidity": "npx hardhat run scripts/04-remove-liquidity.js --network kovan",
+    "deploy-swapper": "npx hardhat run scripts/05-deploy-swapper.js --network kovan",
+    "swap-to-wbtc": "END_TOKEN=WBTC npx hardhat run scripts/06-test-swap.js --network kovan",
+    "swap-to-tusd": "END_TOKEN=TUSD npx hardhat run scripts/06-test-swap.js --network kovan"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Dhanush123/swapai-backend.git"
   },
-  "author": "",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/Dhanush123/swapai-backend/issues"

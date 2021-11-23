@@ -8,76 +8,39 @@ import { AggregatorV3Interface } from "@chainlink/contracts/src/v0.6/interfaces/
 
 // 1st-party project imports
 import { Constants } from "./Constants.sol";
-import { SwapUser } from "./DataStructures.sol";
-import { TokenSwapper } from "./TokenSwapper.sol";
 
 // Chainlink oracle code goes here
 contract OracleMaster is ChainlinkClient {
-  uint private tusdRatio;
+  // uint private tusdRatio;
   uint private btcSentiment;
   uint private btcPriceCurrent;
   uint private btcPricePrediction;
 
-  bool private force;
-  TokenSwapper private swapper;
-  SwapUser[] private currentUsersToSwap;
-
-  event SwapUsersBalances(
-    uint tusdRatio,
-    uint btcSentiment,
-    uint btcPriceCurrent,
-    uint btcPricePrediction,
-    bool isNegativeFuture,
-    bool isPositiveFuture,
-    SwapUser[] users
-  );
+  address private cbAddress;
+  bytes4 private cbFunction;
 
   constructor() public {
-    swapper = new TokenSwapper();
+    setChainlinkToken(Constants.KOVAN_LINK);
   }
 
-  // Should only be called by keeper
-  function trySwapAuto(SwapUser[] memory _currentUsersToSwap, bool _force) external {
-    for (uint i = 0; i < _currentUsersToSwap.length; i++) {
-      currentUsersToSwap[i] = _currentUsersToSwap[i];
-    }
+  function executeAnalysis(address _callbackAddress, bytes4 _callbackFunctionId) external {
+    cbAddress = _callbackAddress;
+    cbFunction = _callbackFunctionId;
 
-    force = _force;
-
-    startPredictionAnalysis();
+    _startPredictionAnalysis();
   }
 
-  function trySwapManual(SwapUser[] memory _currentUsersToSwap, bool swapToTUSD) external {
-    for (uint i = 0; i < _currentUsersToSwap.length; i++) {
-      currentUsersToSwap[i] = _currentUsersToSwap[i];
-    }
+  function sendResults() internal {
+    bytes memory data = abi.encodeWithSelector(
+      cbFunction,
+      btcSentiment, btcPriceCurrent, btcPricePrediction
+    );
 
-    for (uint i = 0; i < currentUsersToSwap.length; i++) {
-      swapper.doManualSwap(currentUsersToSwap[i], swapToTUSD);
-    }
+    (bool success,) = cbAddress.delegatecall(data);
+    require(success, "Unable to create request");
   }
 
-  function shouldSwap() private {
-    // bool isInsufficientTUSDRatio = tusdRatio < 9999; // 10000 means 1:1 asset:reserve ratio, less means $ assets > $ reserves
-    bool isNegativeBTCSentiment = btcSentiment < 2500; // 5000 means 0.5 sentiment from range [-1,1]
-    bool isBTCPriceGoingDown = (btcPriceCurrent / btcPricePrediction * 10**8) > 105000000; // check if > 5% decrease
-    // bool isNegativeFuture = isInsufficientTUSDRatio || isNegativeBTCSentiment || isBTCPriceGoingDown;
-    bool isNegativeFuture = isNegativeBTCSentiment || isBTCPriceGoingDown;
-    
-    // bool isSufficientTUSDRatio = tusdRatio >= 10000; 
-    bool isPositiveBTCSentiment = btcSentiment > 7500; 
-    bool isBTCPriceGoingUp = (btcPriceCurrent / btcPricePrediction * 10**8) < 95000000; // check if > 5% increase
-    // bool isPositiveFuture = isSufficientTUSDRatio && isPositiveBTCSentiment && isBTCPriceGoingUp;
-    bool isPositiveFuture = isPositiveBTCSentiment && isBTCPriceGoingUp;
-    
-    for (uint i = 0; i < currentUsersToSwap.length; i++) {
-      swapper.doAutoSwap(currentUsersToSwap[i], isPositiveFuture, isNegativeFuture);
-    }
-
-    emit SwapUsersBalances(tusdRatio, btcSentiment, btcPriceCurrent, btcPricePrediction, isNegativeFuture, isPositiveFuture, currentUsersToSwap);
-  }
-
-  function startPredictionAnalysis() private {
+  function _startPredictionAnalysis() private {
     // requestTUSDRatio();
     requestBTCSentiment();
   }
@@ -86,15 +49,15 @@ contract OracleMaster is ChainlinkClient {
   // Currency Ratios //
   /////////////////////
   
-  function requestTUSDRatio() internal {
-    Chainlink.Request memory req = buildChainlinkRequest(Constants.TUSD_RATIO_JOB_ID, address(this), this.getTUSDRatio.selector);
-    sendChainlinkRequestTo(Constants.TUSD_RATIO_ORACLE_ADDR, req, Constants.ONE_TENTH_LINK_PAYMENT);
-  }
+  // function requestTUSDRatio() internal {
+  //   Chainlink.Request memory req = buildChainlinkRequest(Constants.TUSD_RATIO_JOB_ID, address(this), this.getTUSDRatio.selector);
+  //   sendChainlinkRequestTo(Constants.TUSD_RATIO_ORACLE_ADDR, req, Constants.ONE_TENTH_LINK_PAYMENT);
+  // }
 
-  function getTUSDRatio(bytes32 _requestID, uint _ratio) public recordChainlinkFulfillment(_requestID) {
-    tusdRatio = _ratio;
-    requestBTCSentiment();
-  }
+  // function getTUSDRatio(bytes32 _requestID, uint _ratio) public recordChainlinkFulfillment(_requestID) {
+  //   tusdRatio = _ratio;
+  //   requestBTCSentiment();
+  // }
 
   ///////////////////////////
   // BTC Sentiment Analyis //
@@ -135,6 +98,6 @@ contract OracleMaster is ChainlinkClient {
 
   function getBTCPricePrediction(bytes32 _requestID, uint _btcPricePrediction) public recordChainlinkFulfillment(_requestID) {
     btcPricePrediction = _btcPricePrediction;
-    shouldSwap();
+    sendResults();
   }
 }

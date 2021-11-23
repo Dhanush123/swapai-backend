@@ -12,3 +12,6 @@ typechain
 cache
 artifacts
 contracts/.DS_Store
+
+# Artifacts folder from scripts
+scripts/artifacts

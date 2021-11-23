@@ -1,41 +1,37 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.6.12;
+pragma experimental ABIEncoderV2;
+
+import { SwapUser } from "../DataStructures.sol";
 
 interface ISwapAI {
   function createUser() external;
-
+  function fetchUserBalance() external;
   function optInToggle() external;
 
-  function swapSingleUserBalance() external;
+  function swapSingleUsersBalance(bool toTUSD) external;
+  function swapAllUsersBalances() external;
 
-  function swapAllUsersBalances(bool force) external;
+  event CreateUser(bool createUserStatus);
+  event UserBalance(uint WBTCBalance, uint TUSDBalance);
+  event OptInToggle(bool optInStatus);
+  event SwapEligibleUsersExist(bool swapEligibleStatus);
 
-  function fetchUserBalance() external;
+  event DepositTUSD(uint oldAmount, uint newAmount);
+  event DepositWBTC(uint oldAmount, uint newAmount);
 
-  event CreateUser(
-      bool createUserStatus
+  event ManualSwap(
+    SwapUser user,
+    bool toTUSD
   );
 
-  event OptInToggle(
-      bool optInStatus
-  );
-
-  event DepositTUSD(
-    uint oldUserAmount,
-    uint newUserAmount
-  );
-
-  event DepositWBTC(
-    uint oldUserAmount,
-    uint newUserAmount
-  );
-
-  event SwapEligibleUsersExist(
-    bool swapEligibleStatus
-  );
-
-  event UserBalance(
-    uint WBTCBalance,
-    uint TUSDBalance
+  event AutoSwap(
+    // uint tusdRatio,
+    SwapUser[] users,
+    uint btcSentiment,
+    uint btcPriceCurrent,
+    uint btcPricePrediction,
+    bool isNegativeFuture,
+    bool isPositiveFuture
   );
 }

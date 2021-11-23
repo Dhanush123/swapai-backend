@@ -1,22 +1,34 @@
+'use strict';
+
 const fs = require('fs');
 
 class ContractDeployer {
-  constructor(contractsDir) {
-    this.contractsDir = contractsDir;
-    this.contractConfigs = [];
+  constructor() {
     this.contracts = {};
+    this.contractConfigs = [];
+    this.exportConfigs = [];
   }
 
   addContract({ name, args = [] }) {
     this.contractConfigs.push({ name, args });
+    return this;
+  }
+
+  addExportDir({ dir, file }) {
+    this.exportConfigs.push({ dir, file });
+    return this;
+  }
+
+  deployedContracts() {
+    return this.contracts;
   }
 
   async deploy() {
-    for (const config of this.contractConfigs) {
+    for (const config of this.contractConfigs)
       await this.deployContract(config);
-    }
 
-    this.saveFrontendFiles();
+    for (const config of this.exportConfigs)
+      this.saveContractFiles(config);
   }
 
   async deployContract(config) {
@@ -40,33 +52,42 @@ class ContractDeployer {
   }
 
   // We also save the contract's artifacts and address in the frontend directory
-  saveFrontendFiles() {
-    if (!fs.existsSync(this.contractsDir)) {
-      fs.mkdirSync(this.contractsDir);
-    }
+  saveContractFiles(config) {
+    if (!fs.existsSync(config.dir))
+      fs.mkdirSync(config.dir);
 
-    // Check if 'contract-address.json' already exists
-    const contractAddrs = this.contractsDir + '/contract-address.json';
+    const contractAddrFile = `${config.dir}/${config.file}`;
+
+    // Save new contract addresses to JSON file
+    this._saveContractAddresses(contractAddrFile, this.contracts);
+
+    // Save new contract artifacts to export directory
+    this._saveContractFiles(config.dir, this.contracts);
+  }
+
+  _saveContractAddresses(filePath, newContracts) {
     let allContracts;
 
     // If it does not exist, create a new one, otherwise read its data and merge with it
-    if (fs.existsSync(contractAddrs))
-      allContracts = JSON.parse(fs.readFileSync(contractAddrs, 'utf8'));
+    if (fs.existsSync(filePath))
+      allContracts = JSON.parse(fs.readFileSync(filePath, 'utf8'));
     else
       allContracts = {};
 
-    allContracts = { ...allContracts, ...this.contracts };
+    allContracts = { ...allContracts, ...newContracts };
 
     fs.writeFileSync(
-      contractAddrs,
-      JSON.stringify(allContracts, undefined, 2)
+      filePath,
+      JSON.stringify(allContracts, null, 2)
     );
+  }
 
-    for (const contractName of Object.keys(this.contracts)) {
+  _saveContractFiles(contractDir, newContracts) {
+    for (const contractName of Object.keys(newContracts)) {
       const contractArtifact = artifacts.readArtifactSync(contractName);
 
       fs.writeFileSync(
-        this.contractsDir + `/${contractName}.json`,
+        contractDir + `/${contractName}.json`,
         JSON.stringify(contractArtifact, null, 2)
       );
     }

@@ -14,8 +14,6 @@ import { SwapUser, PredictionResponse, SwapDirection } from "./DataStructures.so
 
 // Chainlink oracle code goes here
 contract OracleMasterV3 is ChainlinkClient {
-  bool private force;
-
   TokenSwapper private swapper;
   OracleAggregator private aggregator;
 
@@ -65,7 +63,7 @@ contract OracleMasterV3 is ChainlinkClient {
     //   this.getTUSDRatio.selector,
 
     //   Constants.TUSD_RATIO_ORACLE_ADDR,
-    //   1 * Constants.LINK
+    //   Constants.ONE_LINK_PAYMENT
     // );
 
     // Add Job for BTC Sentiment Analyis
@@ -75,7 +73,7 @@ contract OracleMasterV3 is ChainlinkClient {
       this.getBTCSentiment.selector,
 
       Constants.SENTIMENT_ORACLE_ADDR,
-      0.1 * Constants.LINK
+      Constants.ONE_TENTH_LINK_PAYMENT
     );
 
     // Add Job for BTC Price Predictions
@@ -85,7 +83,7 @@ contract OracleMasterV3 is ChainlinkClient {
       this.getBTCPricePrediction.selector,
 
       Constants.PRICE_ORACLE_ADDR,
-      1 * Constants.LINK
+      Constants.ONE_LINK_PAYMENT
     );
 
     // Execute all jobs
