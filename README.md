@@ -33,8 +33,6 @@ npm install
 npm start
 ```
 
-Note: Each time you redeploy the contract or delete the ```/contracts``` folder in the frontend repo, you will need to stop and restart the frontend.
-
 ## Commands
 
 ```bash
