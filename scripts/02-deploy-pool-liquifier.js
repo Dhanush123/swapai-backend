@@ -14,7 +14,6 @@ async function main() {
 
   const contractDeployer = new ContractDeployer()
     .addContract({ name: 'PoolLiquifier', args: [TUSD_TOKEN_ADDR, WBTC_TOKEN_ADDR] })
-    .addExportDir({ dir: FRONTEND_CONTRACTS_DIR, file: CONTRACT_ADDRESSES_FILE })
     .addExportDir({ dir: ARTIFACTS_DIR, file: CONTRACT_ADDRESSES_FILE });
 
   await contractDeployer.deploy();
