@@ -2,6 +2,10 @@
 pragma solidity ^0.6.12;
 
 struct SwapUser {
+  // The 'exists' attribute is used purely for checking if a user exists. This works
+  // since when you instantiate a new SwapUser, the default value is 'false'
+  bool exists;
+
   address userAddress;
   uint wbtcBalance;
   uint tusdBalance;

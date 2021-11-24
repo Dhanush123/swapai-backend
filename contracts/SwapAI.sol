@@ -41,20 +41,40 @@ contract SwapAI is ISwapAI, Ownable {
   //   lastTimeStamp = block.timestamp;
   // }
 
+  ///////////////////////////
+  // User register / login //
+  ///////////////////////////
+
+  function userExists() external override {
+    bool exists = userData[msg.sender].exists;
+    emit UserExists(exists);
+  }
+
+  function registerUser() external override {
+    bool isNewUser;
+    if (!userData[msg.sender].exists) {
+      userData[msg.sender].userAddress = msg.sender;
+      userData[msg.sender].wbtcBalance = 0;
+      userData[msg.sender].tusdBalance = 0;
+      userData[msg.sender].optInStatus = false;
+      userData[msg.sender].exists = true;
+
+      userAddresses.push(msg.sender);
+      isNewUser = true;
+    } else {
+      isNewUser = false;
+    }
+
+    emit RegisterUser(true, isNewUser);
+  }
+
   /////////////////////
-  // User Management //
+  // User Attributes //
   /////////////////////
 
-  function createUser() external override {
-    if (userData[msg.sender].userAddress == address(0)) {
-      userData[msg.sender].userAddress = msg.sender;
-      userData[msg.sender].optInStatus = true;
-      userAddresses.push(msg.sender);
-      emit CreateUser(true);
-    } else {
-      emit CreateUser(false);
-    }
-  }
+
+  event UserBalance(uint wbtcBalance, uint tusdBalance);
+  event OptInStatus(bool optInStatus);
 
   function fetchUserBalance() external override {
     emit UserBalance(
@@ -63,25 +83,32 @@ contract SwapAI is ISwapAI, Ownable {
     );
   }
 
-  function optInToggle() external override {
-    userData[msg.sender].optInStatus = !userData[msg.sender].optInStatus;
-    emit OptInToggle(userData[msg.sender].optInStatus);
+  function fetchOptInStatus() external override {
+    emit OptInStatus(userData[msg.sender].optInStatus);
   }
 
-  function isAtleastOneUserOptIn() private returns (bool) {
-    bool result = false;
-    for (uint i = 0; i < userAddresses.length; i++) {
-      if (userData[userAddresses[i]].optInStatus) {
-        result = true;
-        break;
-      }
-    }
+  /////////////////////
+  // User management //
+  /////////////////////
 
-    emit SwapEligibleUsersExist(result);
-    return result;
+  function setOptInStatus(bool newOptInStatus) external override {
+    userData[msg.sender].optInStatus = newOptInStatus;
+    emit OptInStatus(userData[msg.sender].optInStatus);
   }
 
-  function getSwapEligibleUsers() public view returns (SwapUser[] memory) {
+  ////////////////////////
+  // Internal functions //
+  ////////////////////////
+
+  function _isAtleastOneUserOptIn() private view returns (bool) {
+    for (uint i = 0; i < userAddresses.length; i++)
+      if (userData[userAddresses[i]].optInStatus)
+        return true;
+
+    return false;
+  }
+
+  function _getSwapEligibleUsers() private view returns (SwapUser[] memory) {
     // NOTE: To avoid having a storage array (i.e. extra gas cost), we're counting the items
     // to be filtered and then instantiating a memory-based array
     uint numEligibleUsers = 0;
@@ -105,53 +132,11 @@ contract SwapAI is ISwapAI, Ownable {
     return eligibleUsers;
   }
 
-  ////////////////////
-  // Swapping Logic //
-  ////////////////////
+  ////////////////////////
+  // Balance depositing //
+  ////////////////////////
 
-  function swapSingleUsersBalance(bool toTUSD) external override {
-    SwapUser memory currentUser = userData[msg.sender];
-    tokenSwapper.doManualSwap(currentUser, toTUSD);
-
-    emit ManualSwap(currentUser, toTUSD);
-  }
-
-  function swapAllUsersBalances() public override {
-    oracleMaster.executeAnalysis(address(this), this._processAnalysis.selector);
-  }
-
-  function _processAnalysis(
-    uint btcSentiment,
-    uint btcPriceCurrent,
-    uint btcPricePrediction
-  ) public {
-    // bool isInsufficientTUSDRatio = tusdRatio < 9999; // 10000 means 1:1 asset:reserve ratio, less means $ assets > $ reserves
-    bool isNegativeBTCSentiment = btcSentiment < 2500; // 5000 means 0.5 sentiment from range [-1,1]
-    bool isBTCPriceGoingDown = (btcPriceCurrent / btcPricePrediction * 10**8) > 105000000; // check if > 5% decrease
-    bool isNegativeFuture = /*isInsufficientTUSDRatio ||*/ isNegativeBTCSentiment || isBTCPriceGoingDown;
-
-    // bool isSufficientTUSDRatio = tusdRatio >= 10000;
-    bool isPositiveBTCSentiment = btcSentiment > 7500;
-    bool isBTCPriceGoingUp = (btcPriceCurrent / btcPricePrediction * 10**8) < 95000000; // check if > 5% increase
-    bool isPositiveFuture = /*isSufficientTUSDRatio &&*/ isPositiveBTCSentiment && isBTCPriceGoingUp;
-
-    SwapUser[] memory usersToSwap = getSwapEligibleUsers();
-    for (uint i = 0; i < usersToSwap.length; i++)
-      tokenSwapper.doAutoSwap(usersToSwap[i], isPositiveFuture, isNegativeFuture);
-
-    emit AutoSwap(
-      usersToSwap,
-      /*tusdRatio,*/ btcSentiment,
-      btcPriceCurrent, btcPricePrediction,
-      isNegativeFuture, isPositiveFuture
-    );
-  }
-
-  //////////////////////
-  // Depositing Logic //
-  //////////////////////
-
-  function depositTUSD(uint depositAmount) public {
+  function depositTUSD(uint depositAmount) external override {
     require(
       IERC20(tusdTokenAddr).transferFrom(msg.sender, address(this), depositAmount),
       "Deposit of TUSD failed"
@@ -165,7 +150,7 @@ contract SwapAI is ISwapAI, Ownable {
     emit DepositTUSD(oldTUSDBalance, user.tusdBalance);
   }
 
-  function depositWBTC(uint depositAmount) public { 
+  function depositWBTC(uint depositAmount) external override {
     require(
       IERC20(wbtcTokenAddr).transferFrom(msg.sender, address(this), depositAmount),
       "Deposit of WBTC failed"
@@ -179,9 +164,57 @@ contract SwapAI is ISwapAI, Ownable {
     emit DepositWBTC(oldWBTCBalance, user.wbtcBalance);
   }
 
+  //////////////////////
+  // Balance swapping //
+  //////////////////////
+
+  function manualSwapUserBalance(bool toTUSD) external override {
+    SwapUser memory currentUser = userData[msg.sender];
+    tokenSwapper.doManualSwap(currentUser, toTUSD);
+
+    emit ManualSwap(true, toTUSD);
+  }
+
+  function smartSwapAllBalances() external override {
+    oracleMaster.executeAnalysis(address(this), this._processAnalysis.selector);
+  }
+
+  // SECURITY RISK!!!
+  // TODO: This poses a securiy risk where anyone can call this function and trigger an auto-swap
+  // at will. This needs to be patched ASAP
+  function _processAnalysis(
+    uint btcSentiment,
+    uint btcPriceCurrent,
+    uint btcPricePrediction
+  ) external {
+    // bool isInsufficientTUSDRatio = tusdRatio < 9999; // 10000 means 1:1 asset:reserve ratio, less means $ assets > $ reserves
+    bool isNegativeBTCSentiment = btcSentiment < 2500; // 5000 means 0.5 sentiment from range [-1,1]
+    bool isBTCPriceGoingDown = (btcPriceCurrent / btcPricePrediction * 10**8) > 105000000; // check if > 5% decrease
+    bool isNegativeFuture = /*isInsufficientTUSDRatio ||*/ isNegativeBTCSentiment || isBTCPriceGoingDown;
+
+    // bool isSufficientTUSDRatio = tusdRatio >= 10000;
+    bool isPositiveBTCSentiment = btcSentiment > 7500;
+    bool isBTCPriceGoingUp = (btcPriceCurrent / btcPricePrediction * 10**8) < 95000000; // check if > 5% increase
+    bool isPositiveFuture = /*isSufficientTUSDRatio &&*/ isPositiveBTCSentiment && isBTCPriceGoingUp;
+
+    SwapUser[] memory usersToSwap = _getSwapEligibleUsers();
+    for (uint i = 0; i < usersToSwap.length; i++)
+      tokenSwapper.doAutoSwap(usersToSwap[i], isPositiveFuture, isNegativeFuture);
+
+    emit AutoSwap(
+      /*tusdRatio,*/ btcSentiment,
+      btcPriceCurrent, btcPricePrediction,
+      isNegativeFuture, isPositiveFuture
+    );
+  }
+
+  ////////////////////////////
+  // Chainlink Keeper Logic //
+  ////////////////////////////
+
   // function checkUpkeep(bytes calldata /* checkData */) external override returns (bool upkeepNeeded, bytes memory /* performData */) {
   //   bool hasIntervalPassed = (block.timestamp - lastTimeStamp) > interval;
-  //   upkeepNeeded = hasIntervalPassed && isAtleastOneUserOptIn();
+  //   upkeepNeeded = hasIntervalPassed && _isAtleastOneUserOptIn();
   //   return (upkeepNeeded, bytes(""));
   //   // We don't use the checkData in this example. The checkData is defined when the Upkeep was registered.
   // }
@@ -190,13 +223,5 @@ contract SwapAI is ISwapAI, Ownable {
   //   lastTimeStamp = block.timestamp;
   //   swapAllUsersBalances(false);
   //   // We don't use the performData in this example. The performData is generated by the Keeper's call to your checkUpkeep function
-  // }
-
-  // function getContractTUSDBalance() internal view returns (uint) {
-  //   return IERC20(Constants.KOVAN_TUSD).balanceOf(address(this));
-  // }
-
-  // function getContractWBTCBalance() internal view returns (uint) {
-  //   return IERC20(Constants.KOVAN_WBTC).balanceOf(address(this));
   // }
 }

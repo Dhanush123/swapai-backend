@@ -5,29 +5,39 @@ pragma experimental ABIEncoderV2;
 import { SwapUser } from "../DataStructures.sol";
 
 interface ISwapAI {
-  function createUser() external;
+  // User register / login
+  function userExists() external;
+  function registerUser() external;
+
+  event UserExists(bool userExists);
+  event RegisterUser(bool success, bool isNewUser);
+
+  // User attributes
   function fetchUserBalance() external;
-  function optInToggle() external;
+  function fetchOptInStatus() external;
 
-  function swapSingleUsersBalance(bool toTUSD) external;
-  function swapAllUsersBalances() external;
+  event UserBalance(uint wbtcBalance, uint tusdBalance);
+  event OptInStatus(bool optInStatus);
 
-  event CreateUser(bool createUserStatus);
-  event UserBalance(uint WBTCBalance, uint TUSDBalance);
-  event OptInToggle(bool optInStatus);
-  event SwapEligibleUsersExist(bool swapEligibleStatus);
+  // User management
+  function setOptInStatus(bool newOptInStatus) external;
+
+  event ToggleOptInStatus(bool newOptInStatus);
+
+  // Balance depositing
+  function depositTUSD(uint depositAmount) external;
+  function depositWBTC(uint depositAmount) external;
 
   event DepositTUSD(uint oldAmount, uint newAmount);
   event DepositWBTC(uint oldAmount, uint newAmount);
 
-  event ManualSwap(
-    SwapUser user,
-    bool toTUSD
-  );
+  // Balance swapping
+  function manualSwapUserBalance(bool toTUSD) external;
+  function smartSwapAllBalances() external;
 
+  event ManualSwap(bool success, bool toTUSD);
   event AutoSwap(
     // uint tusdRatio,
-    SwapUser[] users,
     uint btcSentiment,
     uint btcPriceCurrent,
     uint btcPricePrediction,
