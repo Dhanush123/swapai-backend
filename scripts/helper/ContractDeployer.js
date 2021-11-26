@@ -51,14 +51,17 @@ class ContractDeployer {
     const [deployer] = await ethers.getSigners();
 
     const deployerAddr = await deployer.getAddress();
-    const accountEthBalance = await deployer.getBalance();
     console.log(`Deploying contract ${config.name} with account: ${deployerAddr}`);
-    console.log(`Account balance (ETH): ${formatCurrency(accountEthBalance, 18)}`);
+
+    const accountEthBalanceBefore = await deployer.getBalance();
+    console.log(`Account balance (ETH) before deployment: ${formatCurrency(accountEthBalanceBefore, 18)}`);
 
     const contract = await ethers.getContractFactory(config.name);
     const contractDeployment = await contract.deploy(...config.args);
     await contractDeployment.deployed();
 
+    const accountEthBalanceAfter = await deployer.getBalance();
+    console.log(`Account balance (ETH) after deployment: ${formatCurrency(accountEthBalanceAfter, 18)}`);
     console.log(`${config.name} address:`, contractDeployment.address);
     console.log();
 
@@ -69,10 +72,19 @@ class ContractDeployer {
   async verifyContract(config) {
     const contractAddr = this.contracts[config.name];
 
-    await hre.run('verify:verify', {
-      address: contractAddr,
-      constructorArguments: config.args,
-    });
+    try {
+      await hre.run('verify:verify', {
+        address: contractAddr,
+        constructorArguments: config.args,
+      });
+    } catch (error) {
+      // If the contract was verified via similar code uploaded prior, we don't need to re-verify persay
+      const isAlreadyVerified = error.message.toLowerCase().includes('already verified');
+      if (isAlreadyVerified)
+        console.log('Skipping verification since contract appears to be already verified')
+      else
+        throw error;
+    }
   }
 
   // We also save the contract's artifacts and address in the frontend directory

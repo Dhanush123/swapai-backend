@@ -1,14 +1,19 @@
 'use strict';
 
-const { runTask } = require('./helper/utils');
+const { printTitle, runTask } = require('./helper/utils');
 
 const mintTokens          = require('./01-mint-tokens');
 const deployPoolLiquifier = require('./02-deploy-pool-liquifier');
 const addLiquidity        = require('./03-add-liquidity');
 
 async function deployTokens() {
+  printTitle('Minting Tokens');
   await mintTokens();
+
+  printTitle('Deploying Pool Liquifier');
   await deployPoolLiquifier();
+
+  printTitle('Adding Liquidity');
   await addLiquidity();
 }
 

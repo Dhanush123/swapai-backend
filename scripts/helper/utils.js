@@ -10,6 +10,20 @@ async function sleep(ms) {
   });
 }
 
+function printTitle(title, char = '/', offset = 2) {
+  const numBars = title.length + 2;
+  const sideOffset = char.repeat(offset);
+
+  const barLine   = sideOffset + char.repeat(numBars) + sideOffset;
+  const titleLine = `${sideOffset} ${title} ${sideOffset}`;
+
+  console.log();
+  console.log(barLine);
+  console.log(titleLine);
+  console.log(barLine);
+  console.log();
+}
+
 function readJsonFile(filePath) {
   if (!fs.existsSync(filePath))
     throw new Error(`Cannot find deployed contract addressses file at ${filePath}`);
@@ -75,6 +89,6 @@ async function swapTokens({ swapRouterContract, inputAmount, tokenPath, destAddr
 }
 
 module.exports = {
-  sleep, readJsonFile, waitForEvent, runTask,
+  sleep, printTitle, readJsonFile, waitForEvent, runTask,
   balanceForToken, formatCurrency, approveTokenTransfer, swapTokens
 };

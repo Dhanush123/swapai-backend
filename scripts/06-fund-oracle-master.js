@@ -35,13 +35,12 @@ async function fundOracleMaster() {
   // });
 
   console.log(`Attempting to fund oracle master with ${LINK_FUND_AMOUNT} LINK...`);
-  console.log();
 
   const realLinkFundAmount = LINK_FUND_AMOUNT * 10 ** linkDecimals;
   await linkTokenERC20.transfer(ORACLE_MASTER_ADDR, realLinkFundAmount.toString());
 
-  const [from, to, amount] = await waitForEvent(linkTokenERC20, linkTokenERC20.filters.Transfer(from, to));
-  console.log(`Oracle Master has successfully obtained ${amount} LINK from ${testerAddress}`);
+  const [from, to, amount] = await waitForEvent(linkTokenERC20, linkTokenERC20.filters.Transfer(testerAddress, ORACLE_MASTER_ADDR));
+  console.log(`Oracle Master has successfully obtained ${formatCurrency(amount, linkDecimals)} LINK from ${testerAddress}`);
   console.log();
 
   const newTesterLinkBalance = await linkTokenERC20.balanceOf(testerAddress);
