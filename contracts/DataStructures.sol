@@ -6,9 +6,8 @@ struct SwapUser {
   // since when you instantiate a new SwapUser, the default value is 'false'
   bool exists;
 
-  address userAddress;
-  uint wbtcBalance;
   uint tusdBalance;
+  uint wbtcBalance;
   bool optInStatus;
 }
 

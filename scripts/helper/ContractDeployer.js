@@ -1,6 +1,9 @@
 'use strict';
 
 const fs = require('fs');
+const hre = require('hardhat');
+
+const { sleep, formatCurrency } = require('./utils');
 
 class ContractDeployer {
   constructor() {
@@ -9,8 +12,8 @@ class ContractDeployer {
     this.exportConfigs = [];
   }
 
-  addContract({ name, args = [] }) {
-    this.contractConfigs.push({ name, args });
+  addContract({ name, args = [], verify = false }) {
+    this.contractConfigs.push({ name, args, verify });
     return this;
   }
 
@@ -24,9 +27,21 @@ class ContractDeployer {
   }
 
   async deploy() {
-    for (const config of this.contractConfigs)
+    for (const config of this.contractConfigs) {
+      // First deploy the contract
       await this.deployContract(config);
 
+      if (config.verify) {
+        // Wait for 30 seconds for etherscan to recognize it
+        console.log("Waiting for 30 seconds for etherscan to recognize it...");
+        await sleep(30 * 1000);
+
+        // Then verify the contract by uploading them to etherscan (if the key is provided)
+        await this.verifyContract(config);
+      }
+    }
+
+    // Lastly, save the ABI specs to the given export directories
     for (const config of this.exportConfigs)
       this.saveContractFiles(config);
   }
@@ -35,20 +50,29 @@ class ContractDeployer {
     // ethers is avaialble in the global scope
     const [deployer] = await ethers.getSigners();
 
-    console.log(`Deploying contract ${config.name} with account:`, (await deployer.getAddress()));
-    console.log('Account balance:', (await deployer.getBalance()).toString());
+    const deployerAddr = await deployer.getAddress();
+    const accountEthBalance = await deployer.getBalance();
+    console.log(`Deploying contract ${config.name} with account: ${deployerAddr}`);
+    console.log(`Account balance (ETH): ${formatCurrency(accountEthBalance, 18)}`);
 
     const contract = await ethers.getContractFactory(config.name);
-
-    // const intervalSeconds = 86400; // 1 day
-    // const contractDeploy = await contract.deploy(intervalSeconds);
     const contractDeployment = await contract.deploy(...config.args);
     await contractDeployment.deployed();
+
     console.log(`${config.name} address:`, contractDeployment.address);
     console.log();
 
     this.contracts[config.name] = contractDeployment.address;
     return contractDeployment;
+  }
+
+  async verifyContract(config) {
+    const contractAddr = this.contracts[config.name];
+
+    await hre.run('verify:verify', {
+      address: contractAddr,
+      constructorArguments: config.args,
+    });
   }
 
   // We also save the contract's artifacts and address in the frontend directory

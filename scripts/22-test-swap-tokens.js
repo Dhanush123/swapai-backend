@@ -18,7 +18,7 @@ const {
 } = require('./helper/utils');
 
 
-async function main() {
+async function testSwapTokens() {
   const endToken = process.env.END_TOKEN;
   const swappingToTUSD = endToken === 'TUSD';
   const swappingToWBTC = endToken === 'WBTC';
@@ -87,4 +87,9 @@ async function main() {
   console.log();
 }
 
-runTask(main);
+module.exports = testSwapTokens;
+
+// Only run the task if it's not imported as a module
+if (typeof require !== 'undefined' && require.main === module) {
+  runTask(testSwapTokens);
+}

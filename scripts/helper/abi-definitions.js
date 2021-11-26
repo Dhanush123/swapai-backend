@@ -4,6 +4,7 @@ const ERC20_TOKEN_ABI = [
   'function decimals() public view returns (uint8)',
   'function balanceOf(address account) public view returns (uint256)',
 
+  'function transfer(address recipient, uint256 amount) public returns (bool)',
   'function approve(address spender, uint256 amount) external returns (bool)',
 
   'event Transfer(address indexed from, address indexed to, uint256 value)',

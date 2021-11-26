@@ -2,6 +2,14 @@
 
 const fs = require('fs');
 
+const { ERC20_TOKEN_ABI } = require('./abi-definitions');
+
+async function sleep(ms) {
+  return new Promise(resolve => {
+    setTimeout(resolve, ms);
+  });
+}
+
 function readJsonFile(filePath) {
   if (!fs.existsSync(filePath))
     throw new Error(`Cannot find deployed contract addressses file at ${filePath}`);
@@ -24,6 +32,21 @@ function runTask(task) {
       console.error(error);
       process.exit(1);
     });
+}
+
+async function balanceForToken(tokenAddress, targetAddress, deployer) {
+  const tokenContract = new ethers.Contract(tokenAddress, ERC20_TOKEN_ABI, deployer);
+
+  const decimals = await tokenContract.decimals();
+  const balance = await tokenContract.balanceOf(targetAddress);
+
+  return { balance, decimals };
+}
+
+function formatCurrency(rawValue, decimals) {
+  const formattedValue = ethers.utils.formatUnits(rawValue, decimals);
+  const prettyValue = ethers.utils.commify(formattedValue);
+  return prettyValue;
 }
 
 async function approveTokenTransfer({ targetContractAddr, tokenName, tokenContract, tokenAmount }) {
@@ -51,4 +74,7 @@ async function swapTokens({ swapRouterContract, inputAmount, tokenPath, destAddr
   await tx.wait();
 }
 
-module.exports = { readJsonFile, waitForEvent, runTask, approveTokenTransfer, swapTokens };
+module.exports = {
+  sleep, readJsonFile, waitForEvent, runTask,
+  balanceForToken, formatCurrency, approveTokenTransfer, swapTokens
+};

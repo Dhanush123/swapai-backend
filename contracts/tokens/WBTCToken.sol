@@ -8,7 +8,7 @@ contract WBTCToken is ERC20 {
     address recipientA, uint256 initialSupplyA,
     address recipientB, uint256 initialSupplyB
   ) ERC20("Wrapped BTC", "WBTC") public {
-    _setupDecimals(18);
+    _setupDecimals(8);
     _mint(recipientA, initialSupplyA * (10 ** uint256(decimals())));
     _mint(recipientB, initialSupplyB * (10 ** uint256(decimals())));
   }

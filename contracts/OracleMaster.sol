@@ -20,7 +20,7 @@ contract OracleMaster is ChainlinkClient {
   bytes4 private cbFunction;
 
   constructor() public {
-    setChainlinkToken(Constants.KOVAN_LINK);
+    setChainlinkToken(Constants.KOVAN_LINK_TOKEN);
   }
 
   function executeAnalysis(address _callbackAddress, bytes4 _callbackFunctionId) external {

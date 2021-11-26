@@ -35,31 +35,61 @@ npm start
 
 ## Commands
 
+### Compilation commands
+
 ```bash
 # Force compile all contracts
 npm run compile
 
 # Clean compiled artifacts
 npm run clean
+```
 
-# Deploy a new set of fake TUSD and WBTC tokens on Kovan
-npm run deploy-tokens
+### Level 0 (L0) deploy commands
+```bash
+# Mint a new set of fake TUSD and WBTC tokens.
+npm run mint-tokens
 
-# Deploy a new version of PoolLiquifier on Kovan. Used for adding/removing liquidity to token pair
+# Deploy a new version of PoolLiquifier. Used for adding/removing liquidity to the token pair.
 npm run deploy-pool-liquifier
 
-# Use the pool liquifier contract on Kovan to *add* liquidity to the token pair
+# Use the pool liquifier contract to *add* liquidity to the token pair.
 npm run add-liquidity
 
-# Use the pool liquifier contract on Kovan to *remove* liquidity to the token pair
+# Use the pool liquifier contract to *remove* liquidity to the token pair.
 npm run remove-liquidity
 
-# Deploy a new version of SwapAI on Kovan. This is the main contract on the backend side
-npm run deploy-swapper
+# Deploy a new version of OracleMaster. Used by SwapAI for fetching data from oracle endpoints for smart swapping.
+npm run deploy-oracle-master
 
-# Swap some TUSD to WBTC
-npm run swap-to-wbtc
+# Fund the OracleMaster with LINK tokens to call the oracles.
+npm run fund-oracle-master
 
-# Swap some WBTC to TUSD
-npm run swap-to-tusd
+# Deploy a new version of TokenSwapper. Used by SwapAI for swapping each user's currency between TUSD and WBTC.
+npm run deploy-token-swapper
+
+# Deploy a new version of SwapAI. This is the main contract.
+npm run deploy-swapai
+```
+
+### Level 1 (L1) deploy commands
+```bash
+# Mint and setup a new set of tokens
+npm run deploy-tokens
+
+# Deploy a new set of contracts
+npm run deploy-contracts
+```
+
+### Debug commands
+
+```bash
+# View the contract deployer's balances in various relevent tokens.
+npm run view-account-balances
+
+# Swap a small portion of the user's TUSD to WBTC
+npm run test-swap-to-wbtc
+
+# Swap a small portion of the user's WBTC to TUSD
+npm run test-swap-to-tusd
 ```

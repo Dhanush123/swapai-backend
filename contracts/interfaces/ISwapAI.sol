@@ -16,13 +16,11 @@ interface ISwapAI {
   function fetchUserBalance() external;
   function fetchOptInStatus() external;
 
-  event UserBalance(uint wbtcBalance, uint tusdBalance);
+  event UserBalance(uint tusdBalance, uint wbtcBalance);
   event OptInStatus(bool optInStatus);
 
   // User management
   function setOptInStatus(bool newOptInStatus) external;
-
-  event ToggleOptInStatus(bool newOptInStatus);
 
   // Balance depositing
   function depositTUSD(uint depositAmount) external;
@@ -35,7 +33,17 @@ interface ISwapAI {
   function manualSwapUserBalance(bool toTUSD) external;
   function smartSwapAllBalances() external;
 
-  event ManualSwap(bool success, bool toTUSD);
+  event ManualSwap(
+    bool success,
+    bool toTUSD,
+    // uint tusdRatio,
+    uint btcSentiment,
+    uint btcPriceCurrent,
+    uint btcPricePrediction,
+    bool isNegativeFuture,
+    bool isPositiveFuture
+  );
+
   event AutoSwap(
     // uint tusdRatio,
     uint btcSentiment,

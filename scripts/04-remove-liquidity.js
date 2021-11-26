@@ -14,7 +14,7 @@ const {
 
 const { readJsonFile, waitForEvent, runTask, approveTokenTransfer } = require('./helper/utils');
 
-async function main() {
+async function removeLiquidity() {
   const {
     TUSDToken: TUSD_TOKEN_ADDR,
     WBTCToken: WBTC_TOKEN_ADDR,
@@ -71,4 +71,9 @@ async function main() {
   console.log();
 }
 
-runTask(main);
+module.exports = removeLiquidity;
+
+// Only run the task if it's not imported as a module
+if (typeof require !== 'undefined' && require.main === module) {
+  runTask(removeLiquidity);
+}

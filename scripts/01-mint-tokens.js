@@ -9,7 +9,7 @@ const { runTask } = require('./helper/utils');
 
 const ContractDeployer = require('./helper/ContractDeployer');
 
-async function main() {
+async function mintTokens() {
   const testerAddress1 = ethers.utils.getAddress(process.env.TESTER_ADDR_1);
   const testerAddress2 = ethers.utils.getAddress(process.env.TESTER_ADDR_2);
 
@@ -35,4 +35,9 @@ async function main() {
   await contractDeployer.deploy();
 }
 
-runTask(main);
+module.exports = mintTokens;
+
+// Only run the task if it's not imported as a module
+if (typeof require !== 'undefined' && require.main === module) {
+  runTask(mintTokens);
+}
