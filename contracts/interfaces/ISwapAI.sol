@@ -29,26 +29,35 @@ interface ISwapAI {
   event DepositTUSD(uint oldAmount, uint newAmount);
   event DepositWBTC(uint oldAmount, uint newAmount);
 
-  // Balance swapping
-  function manualSwapUserBalance(bool toTUSD) external;
-  function smartSwapAllBalances() external;
+  // Manual balance swapping
+  function manualSwapUserToWBTC() external;
+  function manualSwapUserToTUSD() external;
 
   event ManualSwap(
-    bool success,
-    bool toTUSD,
+    uint oldWbtcBalance, uint newWbtcBalance,
+    uint oldTusdBalance, uint newTusdBalance
+  );
+
+  // Prediction forecasting
+  function fetchPredictionForecast() external;
+
+  event PredictionResults(
     // uint tusdRatio,
-    uint btcSentiment,
-    uint btcPriceCurrent,
-    uint btcPricePrediction,
+    int btcSentiment,
+    int btcPriceCurrent,
+    int btcPricePrediction,
     bool isNegativeFuture,
     bool isPositiveFuture
   );
 
+  // Automatic balance swapping
+  function smartSwapAllBalances() external;
+
   event AutoSwap(
     // uint tusdRatio,
-    uint btcSentiment,
-    uint btcPriceCurrent,
-    uint btcPricePrediction,
+    int btcSentiment,
+    int btcPriceCurrent,
+    int btcPricePrediction,
     bool isNegativeFuture,
     bool isPositiveFuture
   );

@@ -32,9 +32,9 @@ class ContractDeployer {
       await this.deployContract(config);
 
       if (config.verify) {
-        // Wait for 30 seconds for etherscan to recognize it
-        console.log("Waiting for 30 seconds for etherscan to recognize it...");
-        await sleep(30 * 1000);
+        // Wait for 60 seconds for etherscan to recognize it, as recommended by the plugin
+        console.log("Waiting for 60 seconds for etherscan to recognize it...");
+        await sleep(60 * 1000);
 
         // Then verify the contract by uploading them to etherscan (if the key is provided)
         await this.verifyContract(config);

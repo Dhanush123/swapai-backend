@@ -115,9 +115,21 @@ contract SwapAI is ISwapAI {
   ////////////////////////
 
   function depositTUSD(uint depositAmount) external override {
+    // First transfer the token amount to the SwapAI contract
     require(
       IERC20(tusdTokenAddr).transferFrom(msg.sender, address(this), depositAmount),
-      "Deposit of TUSD failed"
+      "Deposit of TUSD from user to SwapAI contract failed."
+    );
+
+    // Then transfer the token amount to the token swapper contract
+    require(
+      IERC20(tusdTokenAddr).approve(address(this), depositAmount),
+      'Approval of TUSD to TokenSwapper contract failed.'
+    );
+
+    require(
+      IERC20(tusdTokenAddr).transferFrom(address(this), tokenSwapperAddr, depositAmount),
+      'Transfer of TUSD to TokenSwapper contract failed.'
     );
 
     SwapUser storage user = userData[msg.sender];
@@ -128,9 +140,21 @@ contract SwapAI is ISwapAI {
   }
 
   function depositWBTC(uint depositAmount) external override {
+    // First transfer the token amount to the SwapAI contract
     require(
       IERC20(wbtcTokenAddr).transferFrom(msg.sender, address(this), depositAmount),
-      "Deposit of WBTC failed"
+      "Deposit of WBTC from user to SwapAI contract failed."
+    );
+
+    // Then transfer the token amount to the token swapper contract
+    require(
+      IERC20(wbtcTokenAddr).approve(address(this), depositAmount),
+      'Approval of WBTC to TokenSwapper contract failed.'
+    );
+
+    require(
+      IERC20(wbtcTokenAddr).transferFrom(address(this), tokenSwapperAddr, depositAmount),
+      'Transfer of WBTC to TokenSwapper contract failed.'
     );
 
     SwapUser storage user = userData[msg.sender];
@@ -140,20 +164,113 @@ contract SwapAI is ISwapAI {
     emit DepositWBTC(oldWBTCBalance, user.wbtcBalance);
   }
 
-  //////////////////////
-  // Balance swapping //
-  //////////////////////
+  /////////////////////////////
+  // Manual balance swapping //
+  /////////////////////////////
 
-  function manualSwapUserBalance(bool toTUSD) external override {
-    if (toTUSD) {
-      // OracleMaster(oracleMasterAddr).executeAnalysis(address(this), this._processAnalysisManualToTUSD.selector);
-      _processAnalysisManualToTUSD(6000, 105 * 10 ** 7, 95 * 10 ** 7);
-    } else {
-      // OracleMaster(oracleMasterAddr).executeAnalysis(address(this), this._processAnalysisManualToWBTC.selector);
-      _processAnalysisManualToWBTC(4000, 95 * 10 ** 7, 105 * 10 ** 7);
-    }
+  function _attemptSwapToWBTC(SwapUser storage user) internal {
+    SwapUser memory _tmpUser = TokenSwapper(tokenSwapperAddr).swapToWBTC(user);
+    user.wbtcBalance = _tmpUser.wbtcBalance;
+    user.tusdBalance = _tmpUser.tusdBalance;
   }
 
+  function manualSwapUserToWBTC() external override {
+    SwapUser storage currentUser = userData[msg.sender];
+
+    uint oldWbtcBalance = currentUser.wbtcBalance;
+    uint oldTusdBalance = currentUser.tusdBalance;
+
+    _attemptSwapToWBTC(currentUser);
+
+    uint newWbtcBalance = currentUser.wbtcBalance;
+    uint newTusdBalance = currentUser.tusdBalance;
+
+    emit ManualSwap(
+      oldWbtcBalance, newWbtcBalance,
+      oldTusdBalance, newTusdBalance
+    );
+  }
+
+  function _attemptSwapToTUSD(SwapUser storage user) internal {
+    SwapUser memory _tmpUser = TokenSwapper(tokenSwapperAddr).swapToTUSD(user);
+    user.wbtcBalance = _tmpUser.wbtcBalance;
+    user.tusdBalance = _tmpUser.tusdBalance;
+  }
+
+  function manualSwapUserToTUSD() external override {
+    SwapUser storage currentUser = userData[msg.sender];
+
+    uint oldWbtcBalance = currentUser.wbtcBalance;
+    uint oldTusdBalance = currentUser.tusdBalance;
+
+    _attemptSwapToTUSD(currentUser);
+
+    uint newWbtcBalance = currentUser.wbtcBalance;
+    uint newTusdBalance = currentUser.tusdBalance;
+
+    emit ManualSwap(
+      oldWbtcBalance, newWbtcBalance,
+      oldTusdBalance, newTusdBalance
+    );
+  }
+
+  ////////////////////////////
+  // Prediction forecasting //
+  ////////////////////////////
+
+  function fetchPredictionForecast() external override {
+    OracleMaster(oracleMasterAddr).executeAnalysis(address(this), this._processPredictionResults.selector);
+  }
+
+  function _processPredictionResults(
+    int btcSentiment,
+    int btcPriceCurrent,
+    int btcPricePrediction
+  ) public {
+    bool isNegativeFuture;
+    bool isPositiveFuture;
+
+    (isNegativeFuture, isPositiveFuture) = _analyzeResults(
+      btcSentiment, btcPriceCurrent, btcPricePrediction
+    );
+
+    emit PredictionResults(
+      /*tusdRatio,*/ btcSentiment,
+      btcPriceCurrent, btcPricePrediction,
+      isNegativeFuture, isPositiveFuture
+    );
+  }
+
+  function _analyzeResults(
+    int btcSentiment,
+    int btcPriceCurrent,
+    int btcPricePrediction
+  ) public pure returns (bool, bool) {
+    int btcPriceOffset = (btcPricePrediction - btcPriceCurrent);
+
+    // We want to check within +/- 5%, hence we'll multiply current price by 1 / 20
+    int percentModifier = 20;
+    int btcPriceTolerance = btcPriceCurrent / percentModifier;
+
+    // 10000 means 1:1 asset:reserve ratio, less means $ assets > $ reserves
+    // bool isInsufficientTUSDRatio = tusdRatio < 9999;
+    bool isNegativeBTCSentiment = btcSentiment < -5000; // -5000 means -0.5 sentiment from range [-1,1]
+    bool isBTCPriceGoingDown = btcPriceOffset < -btcPriceTolerance; // check for > 5% decrease
+    bool isNegativeFuture = /*isInsufficientTUSDRatio ||*/ isNegativeBTCSentiment || isBTCPriceGoingDown;
+
+    // bool isSufficientTUSDRatio = tusdRatio >= 10000;
+    bool isPositiveBTCSentiment = btcSentiment > 5000; // 5000 means 0.5 sentiment from range [-1,1]
+    bool isBTCPriceGoingUp = btcPriceOffset > btcPriceTolerance; // check for > 5% increase
+    bool isPositiveFuture = /*isSufficientTUSDRatio &&*/ isPositiveBTCSentiment && isBTCPriceGoingUp;
+
+    return (isNegativeFuture, isPositiveFuture);
+  }
+
+  ////////////////////////////////
+  // Automatic balance swapping //
+  ////////////////////////////////
+
+  // NOTE: This should only be called by the Keeper
   function smartSwapAllBalances() external override {
     OracleMaster(oracleMasterAddr).executeAnalysis(address(this), this._processAnalysisAuto.selector);
   }
@@ -161,62 +278,10 @@ contract SwapAI is ISwapAI {
   // SECURITY RISK!!!
   // TODO: This poses a securiy risk where anyone can call this function and trigger an auto-swap
   // at will. This needs to be patched ASAP
-  function _processAnalysisManualToWBTC(
-    uint btcSentiment,
-    uint btcPriceCurrent,
-    uint btcPricePrediction
-  ) public {
-    bool isNegativeFuture;
-    bool isPositiveFuture;
-
-    (isNegativeFuture, isPositiveFuture) = _analyzeResults(
-      btcSentiment, btcPriceCurrent, btcPricePrediction
-    );
-
-    SwapUser storage currentUser = userData[msg.sender];
-    _attemptSwapToWBTC(currentUser);
-
-    emit ManualSwap(
-      true, false,
-      /*tusdRatio,*/ btcSentiment,
-      btcPriceCurrent, btcPricePrediction,
-      isNegativeFuture, isPositiveFuture
-    );
-  }
-
-  // SECURITY RISK!!!
-  // TODO: This poses a securiy risk where anyone can call this function and trigger an auto-swap
-  // at will. This needs to be patched ASAP
-  function _processAnalysisManualToTUSD(
-    uint btcSentiment,
-    uint btcPriceCurrent,
-    uint btcPricePrediction
-  ) public {
-    bool isNegativeFuture;
-    bool isPositiveFuture;
-
-    (isNegativeFuture, isPositiveFuture) = _analyzeResults(
-      btcSentiment, btcPriceCurrent, btcPricePrediction
-    );
-
-    SwapUser storage currentUser = userData[msg.sender];
-    _attemptSwapToTUSD(currentUser);
-
-    emit ManualSwap(
-      true, true,
-      /*tusdRatio,*/ btcSentiment,
-      btcPriceCurrent, btcPricePrediction,
-      isNegativeFuture, isPositiveFuture
-    );
-  }
-
-  // SECURITY RISK!!!
-  // TODO: This poses a securiy risk where anyone can call this function and trigger an auto-swap
-  // at will. This needs to be patched ASAP
   function _processAnalysisAuto(
-    uint btcSentiment,
-    uint btcPriceCurrent,
-    uint btcPricePrediction
+    int btcSentiment,
+    int btcPriceCurrent,
+    int btcPricePrediction
   ) public {
     bool isNegativeFuture;
     bool isPositiveFuture;
@@ -246,62 +311,6 @@ contract SwapAI is ISwapAI {
       btcPriceCurrent, btcPricePrediction,
       isNegativeFuture, isPositiveFuture
     );
-  }
-
-  function _analyzeResults(
-    uint btcSentiment,
-    uint btcPriceCurrent,
-    uint btcPricePrediction
-  ) public pure returns (bool, bool) {
-    // bool isInsufficientTUSDRatio = tusdRatio < 9999; // 10000 means 1:1 asset:reserve ratio, less means $ assets > $ reserves
-    bool isNegativeBTCSentiment = btcSentiment < 2500; // 5000 means 0.5 sentiment from range [-1,1]
-    bool isBTCPriceGoingDown = (btcPriceCurrent / btcPricePrediction * 10**8) > 105000000; // check if > 5% decrease
-    bool isNegativeFuture = /*isInsufficientTUSDRatio ||*/ isNegativeBTCSentiment || isBTCPriceGoingDown;
-
-    // bool isSufficientTUSDRatio = tusdRatio >= 10000;
-    bool isPositiveBTCSentiment = btcSentiment > 7500;
-    bool isBTCPriceGoingUp = (btcPriceCurrent / btcPricePrediction * 10**8) < 95000000; // check if > 5% increase
-    bool isPositiveFuture = /*isSufficientTUSDRatio &&*/ isPositiveBTCSentiment && isBTCPriceGoingUp;
-
-    return (isNegativeFuture, isPositiveFuture);
-  }
-
-  function _attemptSwapToWBTC(SwapUser memory user) internal returns (SwapUser memory) {
-    uint balance = user.tusdBalance;
-
-    // First transfer the token amount (in TUSD) to the token swapper contract
-    require(
-      IERC20(tusdTokenAddr).approve(address(this), balance),
-      'Approval of TUSD to TokenSwapper contract failed.'
-    );
-
-    require(
-      IERC20(tusdTokenAddr).transferFrom(address(this), tokenSwapperAddr, balance),
-      'Transfer of TUSD to TokenSwapper contract failed.'
-    );
-
-    // Then do the swap to WBTC
-    user = TokenSwapper(tokenSwapperAddr).swapToWBTC(user);
-    return user;
-  }
-
-  function _attemptSwapToTUSD(SwapUser memory user) internal returns (SwapUser memory) {
-    uint balance = user.wbtcBalance;
-
-    // First transfer the token amount to the token swapper contract
-    require(
-      IERC20(wbtcTokenAddr).approve(address(this), balance),
-      'Approval of WBTC to TokenSwapper contract failed.'
-    );
-
-    require(
-      IERC20(wbtcTokenAddr).transferFrom(address(this), tokenSwapperAddr, balance),
-      'Transfer of WBTC to TokenSwapper contract failed.'
-    );
-
-    // Then do the swap to WBTC
-    user = TokenSwapper(tokenSwapperAddr).swapToTUSD(user);
-    return user;
   }
 
   ////////////////////////////

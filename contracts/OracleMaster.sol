@@ -12,9 +12,9 @@ import { Constants } from "./Constants.sol";
 // Chainlink oracle code goes here
 contract OracleMaster is ChainlinkClient {
   // uint private tusdRatio;
-  uint private btcSentiment;
-  uint private btcPriceCurrent;
-  uint private btcPricePrediction;
+  int private btcSentiment;
+  int private btcPriceCurrent;
+  int private btcPricePrediction;
 
   address private cbAddress;
   bytes4 private cbFunction;
@@ -43,6 +43,7 @@ contract OracleMaster is ChainlinkClient {
   function _startPredictionAnalysis() private {
     // requestTUSDRatio();
     requestBTCSentiment();
+    // requestBTCPriceCurrent();
   }
 
   /////////////////////
@@ -65,12 +66,13 @@ contract OracleMaster is ChainlinkClient {
 
   function requestBTCSentiment() internal {
     Chainlink.Request memory req = buildChainlinkRequest(Constants.SENTIMENT_JOB_ID, address(this), this.getBTCSentiment.selector);
+    req.add("endpoint", "crypto-sentiment");
     req.add("token", "BTC");
     req.add("period", "24");
     sendChainlinkRequestTo(Constants.SENTIMENT_ORACLE_ADDR, req, Constants.ONE_TENTH_LINK_PAYMENT);
   }
 
-  function getBTCSentiment(bytes32 _requestID, uint _btcSentiment) public recordChainlinkFulfillment(_requestID) {
+  function getBTCSentiment(bytes32 _requestID, int _btcSentiment) public recordChainlinkFulfillment(_requestID) {
     btcSentiment = _btcSentiment;
     requestBTCPriceCurrent();
   }
@@ -82,22 +84,20 @@ contract OracleMaster is ChainlinkClient {
   function requestBTCPriceCurrent() internal {
     AggregatorV3Interface priceFeed = AggregatorV3Interface(Constants.BTC_USD_PRICE_FEED_ADDR);
 
-    (,int price,,,) = priceFeed.latestRoundData();
-
-    // We're assuming that price will *never* be negative
-    btcPriceCurrent = uint(price);
+    (,btcPriceCurrent,,,) = priceFeed.latestRoundData();
     
     requestBTCPricePrediction();
   }
 
   function requestBTCPricePrediction() internal {
     Chainlink.Request memory req = buildChainlinkRequest(Constants.PRICE_JOB_ID, address(this), this.getBTCPricePrediction.selector);
+    req.add("endpoint", "price");
     req.add("days", "1");
     sendChainlinkRequestTo(Constants.PRICE_ORACLE_ADDR, req, Constants.ONE_LINK_PAYMENT);
   }
 
   function getBTCPricePrediction(bytes32 _requestID, uint _btcPricePrediction) public recordChainlinkFulfillment(_requestID) {
-    btcPricePrediction = _btcPricePrediction;
+    btcPricePrediction = int(_btcPricePrediction);
     sendResults();
   }
 }

@@ -16,8 +16,6 @@ struct PredictionResponse {
   uint btcSentiment;
   uint btcPriceCurrent;
   uint btcPricePrediction;
-  bool isNegativeFuture;
-  bool isPositiveFuture;
 }
 
 struct JobInfo {
