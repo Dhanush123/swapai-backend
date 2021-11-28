@@ -11,7 +11,11 @@ import { Constants } from "./Constants.sol";
 
 // Chainlink oracle code goes here
 contract OracleMaster is ChainlinkClient {
-  // uint private tusdRatio;
+  // tusdTokenAmt and tusdTrustAmt real values are multiplied by Constants.TUSD_MULT_AMT
+  // TODO: to calculate ratio, ((tusdTokenAmt/tusdTrustAmt) *  10**12) and check > or <= 990000000000
+  // example : ((1286617884.5602689 * 10**7) / (1299420882.5 * 10**7)) * 10**12 = 990147150848
+  int tusdTokenAmt;
+  int tusdTrustAmt;
   int private btcSentiment;
   int private btcPriceCurrent;
   int private btcPricePrediction;
@@ -41,7 +45,8 @@ contract OracleMaster is ChainlinkClient {
   }
 
   function _startPredictionAnalysis() private {
-    // requestTUSDRatio();
+    requestTUSDToken();
+    requestTUSDTrust();
     requestBTCSentiment();
     // requestBTCPriceCurrent();
   }
@@ -50,15 +55,29 @@ contract OracleMaster is ChainlinkClient {
   // Currency Ratios //
   /////////////////////
   
-  // function requestTUSDRatio() internal {
-  //   Chainlink.Request memory req = buildChainlinkRequest(Constants.TUSD_RATIO_JOB_ID, address(this), this.getTUSDRatio.selector);
-  //   sendChainlinkRequestTo(Constants.TUSD_RATIO_ORACLE_ADDR, req, Constants.ONE_TENTH_LINK_PAYMENT);
-  // }
+  function requestTUSDToken() internal {
+    Chainlink.Request memory request = buildChainlinkRequest(jobId, address(this), this.getTUSDToken.selector);
+    request.add("get", Constants.TUSD_URL);
+    request.add("path", "responseData.totalToken");
+    request.addInt("times", Constants.TUSD_MULT_AMT);
+    return sendChainlinkRequestTo(oracle, request, fee);
+  }
 
-  // function getTUSDRatio(bytes32 _requestID, uint _ratio) public recordChainlinkFulfillment(_requestID) {
-  //   tusdRatio = _ratio;
-  //   requestBTCSentiment();
-  // }
+  function getTUSDToken(bytes32 _requestID, uint _tusdTokenAmt) public recordChainlinkFulfillment(_requestID) {
+    tusdTokenAmt = _tusdTokenAmt; // example value 1286617884.5602689 * 10**7
+  }
+
+  function requestTUSDTrust() internal {
+    Chainlink.Request memory request = buildChainlinkRequest(jobId, address(this), this.getTUSDTrust.selector);
+    request.add("get", Constants.TUSD_URL);
+    request.add("path", "responseData.totalTrust");
+    request.addInt("times", Constants.TUSD_MULT_AMT);
+    return sendChainlinkRequestTo(oracle, request, fee);
+  }
+
+  function getTUSDTrust(bytes32 _requestID, uint _tusdTrustAmt) public recordChainlinkFulfillment(_requestID) {
+    tusdTrustAmt = _tusdTrustAmt; // example value 1299420882.5 * 10**7
+  }
 
   ///////////////////////////
   // BTC Sentiment Analyis //

@@ -253,6 +253,7 @@ contract SwapAI is ISwapAI {
     int btcPriceTolerance = btcPriceCurrent / percentModifier;
 
     // 10000 means 1:1 asset:reserve ratio, less means $ assets > $ reserves
+    // TODO:
     // bool isInsufficientTUSDRatio = tusdRatio < 9999;
     bool isNegativeBTCSentiment = btcSentiment < -5000; // -5000 means -0.5 sentiment from range [-1,1]
     bool isBTCPriceGoingDown = btcPriceOffset < -btcPriceTolerance; // check for > 5% decrease
@@ -276,7 +277,7 @@ contract SwapAI is ISwapAI {
   }
 
   // SECURITY RISK!!!
-  // TODO: This poses a securiy risk where anyone can call this function and trigger an auto-swap
+  // TODO: This poses a security risk where anyone can call this function and trigger an auto-swap
   // at will. This needs to be patched ASAP
   function _processAnalysisAuto(
     int btcSentiment,
