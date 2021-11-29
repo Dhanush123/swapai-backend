@@ -58,7 +58,7 @@ contract OracleMaster is ChainlinkClient {
     if (_isResponseReady(_res)) {
       // Call the callback function on the callback contract address
       bytes memory data = abi.encodeWithSelector(cbFunction, res);
-      (bool success,) = cbAddress.delegatecall(data);
+      (bool success,) = cbAddress.call(data);
       require(success, "Unable to submit OracleMaster results to callback");
     }
   }
@@ -130,17 +130,17 @@ contract OracleMaster is ChainlinkClient {
     // tusdAssetsReq.addInt("times", int(Constants.TUSD_MULT_AMT));
     // tusdAssetsJob.request = tusdAssetsReq;
 
-    uint _randTsudAssetsAmt = generateRandom(10 ** 16);
-    res.tusdAssetsAmt = 10 ** 17 + _randTsudAssetsAmt;
+    // uint _randTsudAssetsAmt = generateRandom(10 ** 16);
+    // res.tusdAssetsAmt = 10 ** 17 + _randTsudAssetsAmt;
 
-    // Chainlink.Request memory tusdAssetsReq = buildChainlinkRequest(
-    //   Constants.HTTP_GET_JOB_ID, address(this), this.getTusdAssets.selector
-    // );
-    // tusdAssetsReq.add("get", Constants.TUSD_URL);
-    // tusdAssetsReq.add("path", "responseData.totalToken");
-    // tusdAssetsReq.addInt("times", int(Constants.TUSD_MULT_AMT));
+    Chainlink.Request memory tusdAssetsReq = buildChainlinkRequest(
+      Constants.HTTP_GET_JOB_ID, address(this), this.getTusdAssets.selector
+    );
+    tusdAssetsReq.add("get", Constants.TUSD_URL);
+    tusdAssetsReq.add("path", "responseData.totalToken");
+    tusdAssetsReq.addInt("times", int(Constants.TUSD_MULT_AMT));
 
-    // sendChainlinkRequestTo(Constants.HTTP_GET_ORACLE_ADDR, tusdAssetsReq, Constants.ONE_TENTH_LINK_PAYMENT);
+    sendChainlinkRequestTo(Constants.HTTP_GET_ORACLE_ADDR, tusdAssetsReq, Constants.ONE_TENTH_LINK_PAYMENT);
 
     ///////////////////////////////
     // Prepare TUSD reserves job //
@@ -158,17 +158,17 @@ contract OracleMaster is ChainlinkClient {
     //     this.getTusdReserves.selector
     //   );
 
-    uint _randTsudReservesAmt = generateRandom(10 ** 16);
-    res.tusdReservesAmt = 10 ** 17 + _randTsudReservesAmt;
+    // uint _randTsudReservesAmt = generateRandom(10 ** 16);
+    // res.tusdReservesAmt = 10 ** 17 + _randTsudReservesAmt;
 
-    // Chainlink.Request memory tusdReservesReq = buildChainlinkRequest(
-    //   Constants.HTTP_GET_JOB_ID, address(this), this.getTusdReserves.selector
-    // );
-    // tusdReservesReq.add("get", Constants.TUSD_URL);
-    // tusdReservesReq.add("path", "responseData.totalTrust");
-    // tusdReservesReq.addInt("times", int(Constants.TUSD_MULT_AMT));
+    Chainlink.Request memory tusdReservesReq = buildChainlinkRequest(
+      Constants.HTTP_GET_JOB_ID, address(this), this.getTusdReserves.selector
+    );
+    tusdReservesReq.add("get", Constants.TUSD_URL);
+    tusdReservesReq.add("path", "responseData.totalTrust");
+    tusdReservesReq.addInt("times", int(Constants.TUSD_MULT_AMT));
 
-    // sendChainlinkRequestTo(Constants.HTTP_GET_ORACLE_ADDR, tusdReservesReq, Constants.ONE_TENTH_LINK_PAYMENT);
+    sendChainlinkRequestTo(Constants.HTTP_GET_ORACLE_ADDR, tusdReservesReq, Constants.ONE_TENTH_LINK_PAYMENT);
 
     // tusdReservesJob.request = tusdReservesReq;
 
@@ -207,9 +207,6 @@ contract OracleMaster is ChainlinkClient {
     // super.executeJob(tusdAssetsJob);
     // super.executeJob(tusdReservesJob);
     // super.executeJob(btcSentimentJob);
-    bytes memory data = abi.encodeWithSelector(cbFunction, res);
-    (bool success,) = cbAddress.delegatecall(data);
-    require(success, "Unable to submit OracleMaster results to callback");
   }
 
   ///////////////////////////
