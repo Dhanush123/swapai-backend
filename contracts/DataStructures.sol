@@ -12,20 +12,9 @@ struct SwapUser {
 }
 
 struct PredictionResponse {
-  // uint tusdRatio;
-  uint btcSentiment;
   uint btcPriceCurrent;
   uint btcPricePrediction;
-}
-
-struct JobInfo {
-  bytes32 jobId;
-  address cbAddress;
-  bytes4 cbSignature;
-  address oracleAddress;
-  uint256 fee;
-}
-
-enum SwapDirection {
-  toTUSD, toWBTC
+  uint tusdAssetsAmt;
+  uint tusdReservesAmt;
+  int btcSentiment;
 }

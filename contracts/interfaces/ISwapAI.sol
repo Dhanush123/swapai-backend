@@ -42,10 +42,12 @@ interface ISwapAI {
   function fetchPredictionForecast() external;
 
   event PredictionResults(
-    // uint tusdRatio,
+    uint btcPriceCurrent,
+    uint btcPricePrediction,
+    uint tusdAssets,
+    uint tusdReserves,
     int btcSentiment,
-    int btcPriceCurrent,
-    int btcPricePrediction,
+
     bool isNegativeFuture,
     bool isPositiveFuture
   );
@@ -54,10 +56,12 @@ interface ISwapAI {
   function smartSwapAllBalances() external;
 
   event AutoSwap(
-    // uint tusdRatio,
+    uint btcPriceCurrent,
+    uint btcPricePrediction,
+    uint tusdAssets,
+    uint tusdReserves,
     int btcSentiment,
-    int btcPriceCurrent,
-    int btcPricePrediction,
+
     bool isNegativeFuture,
     bool isPositiveFuture
   );

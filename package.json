@@ -7,20 +7,17 @@
   "scripts": {
     "compile": "npx hardhat compile --force",
     "clean": "npx hardhat clean",
-
+    "lint": "./node_modules/.bin/solhint 'contracts/**/*.sol'",
     "mint-tokens": "npx hardhat run scripts/01-mint-tokens.js --network kovan",
     "deploy-pool-liquifier": "npx hardhat run scripts/02-deploy-pool-liquifier.js --network kovan",
     "add-liquidity": "npx hardhat run scripts/03-add-liquidity.js --network kovan",
     "remove-liquidity": "npx hardhat run scripts/04-remove-liquidity.js --network kovan",
-
     "deploy-oracle-master": "npx hardhat run scripts/05-deploy-oracle-master.js --network kovan",
     "fund-oracle-master": "npx hardhat run scripts/06-fund-oracle-master.js --network kovan",
     "deploy-token-swapper": "npx hardhat run scripts/07-deploy-token-swapper.js --network kovan",
     "deploy-swapai": "npx hardhat run scripts/08-deploy-swapai.js --network kovan",
-
     "deploy-tokens": "npx hardhat run scripts/10-deploy-tokens.js --network kovan",
     "deploy-contracts": "npx hardhat run scripts/11-deploy-contracts.js --network kovan",
-
     "view-account-balances": "npx hardhat run scripts/20-view-account-balances.js --network kovan",
     "test-swap-to-wbtc": "END_TOKEN=WBTC npx hardhat run scripts/22-test-swap-tokens.js --network kovan",
     "test-swap-to-tusd": "END_TOKEN=TUSD npx hardhat run scripts/22-test-swap-tokens.js --network kovan"
@@ -38,14 +35,15 @@
     "@nomiclabs/hardhat-ethers": "^2.0.2",
     "@nomiclabs/hardhat-etherscan": "^2.1.8",
     "chai": "^4.3.4",
+    "dotenv": "^10.0.0",
     "ethereum-waffle": "^3.4.0",
     "ethers": "^5.5.1",
-    "hardhat": "^2.6.8"
+    "hardhat": "^2.6.8",
+    "solhint": "^3.3.6"
   },
   "dependencies": {
     "@chainlink/contracts": "^0.2.2",
     "@openzeppelin/contracts": "^3.4.0",
-    "@sushiswap/core": "^1.4.2",
-    "dotenv": "^10.0.0"
+    "@sushiswap/core": "^1.4.2"
   }
 }

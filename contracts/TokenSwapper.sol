@@ -26,7 +26,7 @@ contract TokenSwapper {
     // First get approval to transfer from starting to ending token via the router
     require(
       IERC20(_tokenPath[0]).approve(Constants.SUSHIV2_ROUTER02_ADDRESS, _inputAmt),
-      'Approval for swapping from starting token failed.'
+      "APPROVE_SWAP_START_TOKEN_FAIL"
     );
 
     IUniswapV2Router02 swapRouter = IUniswapV2Router02(
@@ -49,7 +49,7 @@ contract TokenSwapper {
    * Swapping TUSD -> BTC (WBTC)
    */
   function swapToWBTC(SwapUser memory _user) external returns (SwapUser memory) {
-    require(_user.tusdBalance > 0, 'User does not have any TUSD to swap to WBTC');
+    require(_user.tusdBalance > 0, "USER_SWAP_TUSD_NOT_FOUND");
 
     // HACK: This form of array initialization is used to bypass a type cast error
     address[] memory path = new address[](2);
@@ -68,7 +68,7 @@ contract TokenSwapper {
    * Swapping BTC (WBTC) -> TUSD
    */
   function swapToTUSD(SwapUser memory _user) external returns (SwapUser memory) {
-    require(_user.wbtcBalance > 0, 'User does not have any WBTC to swap to TUSD');
+    require(_user.wbtcBalance > 0, "USER_SWAP_WBTC_NOT_FOUND");
 
     // HACK: This form of array initialization is used to bypass a type cast error
     address[] memory path = new address[](2);

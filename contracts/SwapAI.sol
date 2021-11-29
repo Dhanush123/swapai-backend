@@ -8,7 +8,8 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 // 1st-party project imports
 import { Constants } from "./Constants.sol";
-import { SwapUser } from "./DataStructures.sol";
+import { SwapUser, PredictionResponse } from "./DataStructures.sol";
+
 import { ISwapAI } from "./interfaces/ISwapAI.sol";
 import { OracleMaster } from "./OracleMaster.sol";
 import { TokenSwapper } from "./TokenSwapper.sol";
@@ -61,9 +62,6 @@ contract SwapAI is ISwapAI {
 
     if (!user.exists) {
       user.exists = true;
-      user.wbtcBalance = 0;
-      user.tusdBalance = 0;
-      user.optInStatus = false;
 
       userAddresses.push(msg.sender);
       isNewUser = true;
@@ -118,18 +116,18 @@ contract SwapAI is ISwapAI {
     // First transfer the token amount to the SwapAI contract
     require(
       IERC20(tusdTokenAddr).transferFrom(msg.sender, address(this), depositAmount),
-      "Deposit of TUSD from user to SwapAI contract failed."
+      "DEPOSIT_TUSD_TO_SWAPAI_FAIL"
     );
 
     // Then transfer the token amount to the token swapper contract
     require(
       IERC20(tusdTokenAddr).approve(address(this), depositAmount),
-      'Approval of TUSD to TokenSwapper contract failed.'
+      "APPROVE_TUSD_TOKENSWAP_FAIL"
     );
 
     require(
       IERC20(tusdTokenAddr).transferFrom(address(this), tokenSwapperAddr, depositAmount),
-      'Transfer of TUSD to TokenSwapper contract failed.'
+      "TRANSFER_TUSD_TOKENSWAP_FAIL"
     );
 
     SwapUser storage user = userData[msg.sender];
@@ -143,18 +141,18 @@ contract SwapAI is ISwapAI {
     // First transfer the token amount to the SwapAI contract
     require(
       IERC20(wbtcTokenAddr).transferFrom(msg.sender, address(this), depositAmount),
-      "Deposit of WBTC from user to SwapAI contract failed."
+      "DEPOSIT_WBTC_TO_SWAPAI_FAIL"
     );
 
     // Then transfer the token amount to the token swapper contract
     require(
       IERC20(wbtcTokenAddr).approve(address(this), depositAmount),
-      'Approval of WBTC to TokenSwapper contract failed.'
+      "APPROVE_WBTC_TOKENSWAP_FAIL"
     );
 
     require(
       IERC20(wbtcTokenAddr).transferFrom(address(this), tokenSwapperAddr, depositAmount),
-      'Transfer of WBTC to TokenSwapper contract failed.'
+      "TRANSFER_WBTC_TOKENSWAP_FAIL"
     );
 
     SwapUser storage user = userData[msg.sender];
@@ -222,45 +220,40 @@ contract SwapAI is ISwapAI {
     OracleMaster(oracleMasterAddr).executeAnalysis(address(this), this._processPredictionResults.selector);
   }
 
-  function _processPredictionResults(
-    int btcSentiment,
-    int btcPriceCurrent,
-    int btcPricePrediction
-  ) public {
+  function _processPredictionResults(PredictionResponse memory res) public {
     bool isNegativeFuture;
     bool isPositiveFuture;
 
-    (isNegativeFuture, isPositiveFuture) = _analyzeResults(
-      btcSentiment, btcPriceCurrent, btcPricePrediction
-    );
+    (isNegativeFuture, isPositiveFuture) = _analyzeResults(res);
 
     emit PredictionResults(
-      /*tusdRatio,*/ btcSentiment,
-      btcPriceCurrent, btcPricePrediction,
-      isNegativeFuture, isPositiveFuture
+      res.btcPriceCurrent,
+      res.btcPricePrediction,
+      res.tusdAssetsAmt,
+      res.tusdReservesAmt,
+      res.btcSentiment,
+
+      isNegativeFuture,
+      isPositiveFuture
     );
   }
 
-  function _analyzeResults(
-    int btcSentiment,
-    int btcPriceCurrent,
-    int btcPricePrediction
-  ) public pure returns (bool, bool) {
-    int btcPriceOffset = (btcPricePrediction - btcPriceCurrent);
+  function _analyzeResults(PredictionResponse memory res) public pure returns (bool, bool) {
+    uint btcPriceOffset = (res.btcPricePrediction - res.btcPriceCurrent);
 
-    // We want to check within +/- 5%, hence we'll multiply current price by 1 / 20
-    int percentModifier = 20;
-    int btcPriceTolerance = btcPriceCurrent / percentModifier;
+    // We want to check within +/- 5%, hence we"ll multiply current price by 1 / 20
+    uint percentModifier = 20;
+    uint btcPriceTolerance = res.btcPriceCurrent / percentModifier;
 
     // 10000 means 1:1 asset:reserve ratio, less means $ assets > $ reserves
     // TODO:
     // bool isInsufficientTUSDRatio = tusdRatio < 9999;
-    bool isNegativeBTCSentiment = btcSentiment < -5000; // -5000 means -0.5 sentiment from range [-1,1]
+    bool isNegativeBTCSentiment = res.btcSentiment < -5000; // -5000 means -0.5 sentiment from range [-1,1]
     bool isBTCPriceGoingDown = btcPriceOffset < -btcPriceTolerance; // check for > 5% decrease
     bool isNegativeFuture = /*isInsufficientTUSDRatio ||*/ isNegativeBTCSentiment || isBTCPriceGoingDown;
 
     // bool isSufficientTUSDRatio = tusdRatio >= 10000;
-    bool isPositiveBTCSentiment = btcSentiment > 5000; // 5000 means 0.5 sentiment from range [-1,1]
+    bool isPositiveBTCSentiment = res.btcSentiment > 5000; // 5000 means 0.5 sentiment from range [-1,1]
     bool isBTCPriceGoingUp = btcPriceOffset > btcPriceTolerance; // check for > 5% increase
     bool isPositiveFuture = /*isSufficientTUSDRatio &&*/ isPositiveBTCSentiment && isBTCPriceGoingUp;
 
@@ -279,17 +272,11 @@ contract SwapAI is ISwapAI {
   // SECURITY RISK!!!
   // TODO: This poses a security risk where anyone can call this function and trigger an auto-swap
   // at will. This needs to be patched ASAP
-  function _processAnalysisAuto(
-    int btcSentiment,
-    int btcPriceCurrent,
-    int btcPricePrediction
-  ) public {
+  function _processAnalysisAuto(PredictionResponse memory res) public {
     bool isNegativeFuture;
     bool isPositiveFuture;
 
-    (isNegativeFuture, isPositiveFuture) = _analyzeResults(
-      btcSentiment, btcPriceCurrent, btcPricePrediction
-    );
+    (isNegativeFuture, isPositiveFuture) = _analyzeResults(res);
 
     for (uint i = 0; i < userAddresses.length; i++) {
       address userAddr = userAddresses[i];
@@ -307,10 +294,15 @@ contract SwapAI is ISwapAI {
       }
     }
 
-    emit AutoSwap(
-      /*tusdRatio,*/ btcSentiment,
-      btcPriceCurrent, btcPricePrediction,
-      isNegativeFuture, isPositiveFuture
+    emit PredictionResults(
+      res.btcPriceCurrent,
+      res.btcPricePrediction,
+      res.tusdAssetsAmt,
+      res.tusdReservesAmt,
+      res.btcSentiment,
+
+      isNegativeFuture,
+      isPositiveFuture
     );
   }
 
@@ -322,12 +314,12 @@ contract SwapAI is ISwapAI {
   //   bool hasIntervalPassed = (block.timestamp - lastTimeStamp) > interval;
   //   upkeepNeeded = hasIntervalPassed && _isAtleastOneUserOptIn();
   //   return (upkeepNeeded, bytes(""));
-  //   // We don't use the checkData in this example. The checkData is defined when the Upkeep was registered.
+  //   // We don"t use the checkData in this example. The checkData is defined when the Upkeep was registered.
   // }
 
   // function performUpkeep(bytes calldata /* performData */) external override {
   //   lastTimeStamp = block.timestamp;
   //   swapAllUsersBalances(false);
-  //   // We don't use the performData in this example. The performData is generated by the Keeper's call to your checkUpkeep function
+  //   // We don"t use the performData in this example. The performData is generated by the Keeper"s call to your checkUpkeep function
   // }
 }

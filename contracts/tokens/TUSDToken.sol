@@ -7,7 +7,7 @@ contract TUSDToken is ERC20 {
   constructor(
     address recipientA, uint256 initialSupplyA,
     address recipientB, uint256 initialSupplyB
-  ) ERC20("TrueUSD", "TUSD") public {
+  ) public ERC20("TrueUSD", "TUSD") {
     _setupDecimals(18);
     _mint(recipientA, initialSupplyA * (10 ** uint256(decimals())));
     _mint(recipientB, initialSupplyB * (10 ** uint256(decimals())));
