@@ -21,14 +21,14 @@ contract OracleAggregator is ChainlinkClient {
     return job;
   }
 
-  function executeJob(
-    OracleJob memory job
-  ) internal {
-    // NOTE: Equivalent to buildChainlinkRequest()
-    job.request.initialize(job.specId, job.cbAddress, job.cbFunction);
+  // function executeJob(
+  //   OracleJob memory job
+  // ) internal {
+  //   // NOTE: Equivalent to buildChainlinkRequest()
+  //   super.buildChainlinkRequest(job.specId, job.cbAddress, job.cbFunction);
 
-    super.sendChainlinkRequestTo(job.oracleAddress, job.request, job.fee);
-  }
+  //   super.sendChainlinkRequestTo(job.oracleAddress, job.request, job.fee);
+  // }
 
   // //////////////////////
   // // Mock oracle jobs //

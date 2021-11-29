@@ -4,6 +4,7 @@ pragma experimental ABIEncoderV2;
 
 // 3rd-party library imports
 import { AggregatorV3Interface } from "@chainlink/contracts/src/v0.6/interfaces/AggregatorV3Interface.sol";
+import { ChainlinkClient, Chainlink } from "@chainlink/contracts/src/v0.6/ChainlinkClient.sol";
 
 // 1st-party project imports
 import { Constants } from "./Constants.sol";
@@ -16,7 +17,7 @@ import { JobBuilder } from "./utility/JobBuilder.sol";
 // import { PseudoRandom } from "./utility/PseudoRandom.sol";
 
 // Chainlink oracle code goes here
-contract OracleMaster is OracleAggregator {
+contract OracleMaster is ChainlinkClient {
   using JobBuilder for OracleJob;
 
   PredictionResponse private res;
@@ -111,41 +112,65 @@ contract OracleMaster is OracleAggregator {
     // Prepare TUSD assets job //
     /////////////////////////////
 
-    OracleJob memory tusdAssetsJob = super
-      .createJob()
-      .setOracle(
-        Constants.HTTP_GET_ORACLE_ADDR,
-        Constants.HTTP_GET_JOB_ID,
-        Constants.ONE_TENTH_LINK_PAYMENT
-      )
-      .withCallback(
-        address(this),
-        this.getTusdAssets.selector
-      );
+    // OracleJob memory tusdAssetsJob = super
+    //   .createJob()
+    //   .setOracle(
+    //     Constants.HTTP_GET_ORACLE_ADDR,
+    //     Constants.HTTP_GET_JOB_ID,
+    //     Constants.ONE_TENTH_LINK_PAYMENT
+    //   )
+    //   .withCallback(
+    //     address(this),
+    //     this.getTusdAssets.selector
+    //   );
 
-    tusdAssetsJob.request.add("get", Constants.TUSD_URL);
-    tusdAssetsJob.request.add("path", "responseData.totalToken");
-    tusdAssetsJob.request.addInt("times", int(Constants.TUSD_MULT_AMT));
+    // Chainlink.Request memory tusdAssetsReq;
+    // tusdAssetsReq.add("get", Constants.TUSD_URL);
+    // tusdAssetsReq.add("path", "responseData.totalToken");
+    // tusdAssetsReq.addInt("times", int(Constants.TUSD_MULT_AMT));
+    // tusdAssetsJob.request = tusdAssetsReq;
+
+    uint _randTsudAssetsAmt = generateRandom(10 ** 16);
+    res.tusdAssetsAmt = 10 ** 17 + _randTsudAssetsAmt;
+
+    // Chainlink.Request memory tusdAssetsReq = buildChainlinkRequest(
+    //   Constants.HTTP_GET_JOB_ID, address(this), this.getTusdAssets.selector
+    // );
+    // tusdAssetsReq.add("get", Constants.TUSD_URL);
+    // tusdAssetsReq.add("path", "responseData.totalToken");
+    // tusdAssetsReq.addInt("times", int(Constants.TUSD_MULT_AMT));
+
+    // sendChainlinkRequestTo(Constants.HTTP_GET_ORACLE_ADDR, tusdAssetsReq, Constants.ONE_TENTH_LINK_PAYMENT);
 
     ///////////////////////////////
     // Prepare TUSD reserves job //
     ///////////////////////////////
 
-    OracleJob memory tusdReservesJob = super
-      .createJob()
-      .setOracle(
-        Constants.HTTP_GET_ORACLE_ADDR,
-        Constants.HTTP_GET_JOB_ID,
-        Constants.ONE_TENTH_LINK_PAYMENT
-      )
-      .withCallback(
-        address(this),
-        this.getTusdReserves.selector
-      );
+    // OracleJob memory tusdReservesJob = super
+    //   .createJob()
+    //   .setOracle(
+    //     Constants.HTTP_GET_ORACLE_ADDR,
+    //     Constants.HTTP_GET_JOB_ID,
+    //     Constants.ONE_TENTH_LINK_PAYMENT
+    //   )
+    //   .withCallback(
+    //     address(this),
+    //     this.getTusdReserves.selector
+    //   );
 
-    tusdReservesJob.request.add("get", Constants.TUSD_URL);
-    tusdReservesJob.request.add("path", "responseData.totalTrust");
-    tusdReservesJob.request.addInt("times", int(Constants.TUSD_MULT_AMT));
+    uint _randTsudReservesAmt = generateRandom(10 ** 16);
+    res.tusdReservesAmt = 10 ** 17 + _randTsudReservesAmt;
+
+    // Chainlink.Request memory tusdReservesReq = buildChainlinkRequest(
+    //   Constants.HTTP_GET_JOB_ID, address(this), this.getTusdReserves.selector
+    // );
+    // tusdReservesReq.add("get", Constants.TUSD_URL);
+    // tusdReservesReq.add("path", "responseData.totalTrust");
+    // tusdReservesReq.addInt("times", int(Constants.TUSD_MULT_AMT));
+
+    // sendChainlinkRequestTo(Constants.HTTP_GET_ORACLE_ADDR, tusdReservesReq, Constants.ONE_TENTH_LINK_PAYMENT);
+
+    // tusdReservesJob.request = tusdReservesReq;
 
     ///////////////////////////////////////
     // Prepare BTC sentiment analyis job //
@@ -179,9 +204,12 @@ contract OracleMaster is OracleAggregator {
     /////////////////////////////
 
     // super.executeJob(btcPricePredictionJob);
-    super.executeJob(tusdAssetsJob);
-    super.executeJob(tusdReservesJob);
+    // super.executeJob(tusdAssetsJob);
+    // super.executeJob(tusdReservesJob);
     // super.executeJob(btcSentimentJob);
+    bytes memory data = abi.encodeWithSelector(cbFunction, res);
+    (bool success,) = cbAddress.delegatecall(data);
+    require(success, "Unable to submit OracleMaster results to callback");
   }
 
   ///////////////////////////
@@ -202,7 +230,7 @@ contract OracleMaster is OracleAggregator {
   }
 
   function getTusdReserves(bytes32 _requestID, uint _tusdReservesAmt) public recordChainlinkFulfillment(_requestID) {
-    emit UintLog(_tusdAssetsAmt);
+    emit UintLog(_tusdReservesAmt);
     res.tusdReservesAmt = _tusdReservesAmt;
     checkResponse(res);
   }
