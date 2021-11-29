@@ -1,0 +1,42 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.6.12;
+
+// 3rd-party imports
+import { VRFConsumerBase } from "@chainlink/contracts/src/v0.6/VRFConsumerBase.sol";
+
+// 1st-party imports
+import { Constants } from "../Constants.sol";
+import { IMockedOracle } from "./IMockedOracle.sol";
+
+contract RandomMockedOracle is IMockedOracle, VRFConsumerBase {
+  address callbackAddress;
+  bytes4 callbackFunction;
+
+  constructor() public VRFConsumerBase(
+    Constants.VRF_COORDINATOR_ADDRESS,
+    Constants.KOVAN_LINK_TOKEN
+  );
+
+  function submitJob(address _cbAddress, bytes4 _cbFunction) external override returns (bool) {
+    callbackAddress = _cbAddress;
+    callbackFunction = _cbFunction;
+
+    submitRandomRequest();
+  }
+
+  function fulfillJob(bytes32 data) {
+    (bool success, ) = _cbAddress.call(abi.encodeWithSelector(_cbFunction, _result));
+    return success;
+  }
+
+  function submitRandomRequest() public {
+    require(LINK.balanceOf(address(this)) >= Constants.ONE_TENTH_LINK_PAYMENT, "NOT_ENOUGH_LINK");
+
+    requestRandomness(Constants.VRF_KEY_HASH, Constants.ONE_TENTH_LINK_PAYMENT);
+  }
+
+  // NOTE: If your fulfillRandomness function uses more than 200k gas, the transaction will fail
+  function fulfillRandomness(bytes32 requestId, uint256 randomness) internal override {
+    randomResult = randomness;
+  }
+}

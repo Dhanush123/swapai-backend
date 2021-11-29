@@ -1,0 +1,11 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.6.12;
+pragma experimental ABIEncoderV2;
+
+import { MockOracleJob } from "./MockOracleJob.sol";
+
+interface IMockedOracle {
+  function submitJob(address _cbAddress, bytes4 _cbFunction) external returns (bool);
+
+  function computeValue() external returns (bytes32);
+}
