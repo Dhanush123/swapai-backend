@@ -8,7 +8,6 @@ import { AggregatorV3Interface } from "@chainlink/contracts/src/v0.6/interfaces/
 // 1st-party project imports
 import { Constants } from "./Constants.sol";
 import { PredictionResponse } from "./DataStructures.sol";
-import { PseudoRandom } from "./utility/PseudoRandom.sol";
 
 import { OracleAggregator } from "./utility/OracleAggregator.sol";
 import { JobBuilder } from "./utility/JobBuilder.sol";
@@ -23,6 +22,18 @@ contract OracleMaster is OracleAggregator {
 
   constructor() public {
     setChainlinkToken(Constants.KOVAN_LINK_TOKEN);
+  }
+
+  function _generateRandom(uint max) public view returns(uint256) {
+    uint256 seed = uint256(keccak256(abi.encodePacked(
+      block.timestamp + block.difficulty +
+      ((uint256(keccak256(abi.encodePacked(block.coinbase)))) / (now)) +
+      block.gaslimit +
+      ((uint256(keccak256(abi.encodePacked(msg.sender)))) / (now)) +
+      block.number
+    )));
+
+    return (seed - ((seed / max) * max));
   }
 
   function executeAnalysis(address callbackAddress, bytes4 callbackFunc) external {
@@ -70,7 +81,7 @@ contract OracleMaster is OracleAggregator {
     // 10     = 0.10%
     // 1      = 0.01%
 
-    uint _randBtcPredictRaw = PseudoRandom.generate(2000);
+    uint _randBtcPredictRaw = _generateRandom(2000);
     int percentMod = int(_randBtcPredictRaw) - 1000;
     int priceMod = int(btcCurrentPrice) * percentMod / 10000;
     res.btcPricePrediction = uint(btcCurrentPrice + priceMod);
@@ -112,7 +123,7 @@ contract OracleMaster is OracleAggregator {
         this.getTusdAssets.selector
       );
 
-    // uint _randTsudAssetsAmt = PseudoRandom.generate(10 ** 16);
+    // uint _randTsudAssetsAmt = _generateRandom(10 ** 16);
     // res.tusdAssetsAmt = 10 ** 17 + _randTsudAssetsAmt;
 
     ///////////////////////////////
@@ -134,7 +145,7 @@ contract OracleMaster is OracleAggregator {
         this.getTusdReserves.selector
       );
 
-    // uint _randTsudReservesAmt = PseudoRandom.generate(10 ** 16);
+    // uint _randTsudReservesAmt = _generateRandom(10 ** 16);
     // res.tusdReservesAmt = 10 ** 17 + _randTsudReservesAmt;
 
     ///////////////////////////////////////
@@ -143,7 +154,7 @@ contract OracleMaster is OracleAggregator {
 
     // TODO: For now, we're just (insecurely) generating some values
 
-    uint _randBtcSentimentRaw = PseudoRandom.generate(20000);
+    uint _randBtcSentimentRaw = _generateRandom(20000);
     res.btcSentiment = int(_randBtcSentimentRaw) - 10000;
 
     // NOTE: Commented out since there's no equivalent on Kovan testnet
