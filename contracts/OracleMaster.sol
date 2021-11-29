@@ -4,21 +4,18 @@ pragma experimental ABIEncoderV2;
 
 // 3rd-party library imports
 import { AggregatorV3Interface } from "@chainlink/contracts/src/v0.6/interfaces/AggregatorV3Interface.sol";
-import { ChainlinkClient, Chainlink } from "@chainlink/contracts/src/v0.6/ChainlinkClient.sol";
 
 // 1st-party project imports
 import { Constants } from "./Constants.sol";
 import { PredictionResponse } from "./DataStructures.sol";
+import { PseudoRandom } from "./utility/PseudoRandom.sol";
 
 import { OracleAggregator } from "./utility/OracleAggregator.sol";
-import { OracleJob } from "./utility/OracleJob.sol";
 import { JobBuilder } from "./utility/JobBuilder.sol";
 
-// import { PseudoRandom } from "./utility/PseudoRandom.sol";
-
 // Chainlink oracle code goes here
-contract OracleMaster is ChainlinkClient {
-  using JobBuilder for OracleJob;
+contract OracleMaster is OracleAggregator {
+  using JobBuilder for JobBuilder.OracleJob;
 
   PredictionResponse private res;
   address private cbAddress;
@@ -26,18 +23,6 @@ contract OracleMaster is ChainlinkClient {
 
   constructor() public {
     setChainlinkToken(Constants.KOVAN_LINK_TOKEN);
-  }
-
-  function generateRandom(uint max) public view returns(uint256) {
-    uint256 seed = uint256(keccak256(abi.encodePacked(
-      block.timestamp + block.difficulty +
-      ((uint256(keccak256(abi.encodePacked(block.coinbase)))) / (now)) +
-      block.gaslimit +
-      ((uint256(keccak256(abi.encodePacked(msg.sender)))) / (now)) +
-      block.number
-    )));
-
-    return (seed - ((seed / max) * max));
   }
 
   function executeAnalysis(address callbackAddress, bytes4 callbackFunc) external {
@@ -85,14 +70,14 @@ contract OracleMaster is ChainlinkClient {
     // 10     = 0.10%
     // 1      = 0.01%
 
-    uint _randBtcPredictRaw = generateRandom(2000);
+    uint _randBtcPredictRaw = PseudoRandom.generate(2000);
     int percentMod = int(_randBtcPredictRaw) - 1000;
     int priceMod = int(btcCurrentPrice) * percentMod / 10000;
     res.btcPricePrediction = uint(btcCurrentPrice + priceMod);
 
     // NOTE: Commented out since there's no equivalent on Kovan testnet
 
-    // OracleJob memory btcPricePredictionJob = super
+    // JobBuilder.OracleJob memory btcPricePredictionJob = super
     //   .createJob()
     //   .setOracle(
     //     Constants.PRICE_ORACLE_ADDR,
@@ -112,65 +97,45 @@ contract OracleMaster is ChainlinkClient {
     // Prepare TUSD assets job //
     /////////////////////////////
 
-    // OracleJob memory tusdAssetsJob = super
-    //   .createJob()
-    //   .setOracle(
-    //     Constants.HTTP_GET_ORACLE_ADDR,
-    //     Constants.HTTP_GET_JOB_ID,
-    //     Constants.ONE_TENTH_LINK_PAYMENT
-    //   )
-    //   .withCallback(
-    //     address(this),
-    //     this.getTusdAssets.selector
-    //   );
+    JobBuilder.OracleJob memory tusdAssetsJob = super
+      .createJob()
+      .addStringToBuffer("get", Constants.TUSD_URL)
+      .addStringToBuffer("path", "responseData.totalToken")
+      .addIntegerToBuffer("times", int(Constants.TUSD_MULT_AMT))
+      .setOracle(
+        Constants.HTTP_GET_ORACLE_ADDR,
+        Constants.HTTP_GET_JOB_ID,
+        Constants.ONE_TENTH_LINK_PAYMENT
+      )
+      .withCallback(
+        address(this),
+        this.getTusdAssets.selector
+      );
 
-    // Chainlink.Request memory tusdAssetsReq;
-    // tusdAssetsReq.add("get", Constants.TUSD_URL);
-    // tusdAssetsReq.add("path", "responseData.totalToken");
-    // tusdAssetsReq.addInt("times", int(Constants.TUSD_MULT_AMT));
-    // tusdAssetsJob.request = tusdAssetsReq;
-
-    // uint _randTsudAssetsAmt = generateRandom(10 ** 16);
+    // uint _randTsudAssetsAmt = PseudoRandom.generate(10 ** 16);
     // res.tusdAssetsAmt = 10 ** 17 + _randTsudAssetsAmt;
-
-    Chainlink.Request memory tusdAssetsReq = buildChainlinkRequest(
-      Constants.HTTP_GET_JOB_ID, address(this), this.getTusdAssets.selector
-    );
-    tusdAssetsReq.add("get", Constants.TUSD_URL);
-    tusdAssetsReq.add("path", "responseData.totalToken");
-    tusdAssetsReq.addInt("times", int(Constants.TUSD_MULT_AMT));
-
-    sendChainlinkRequestTo(Constants.HTTP_GET_ORACLE_ADDR, tusdAssetsReq, Constants.ONE_TENTH_LINK_PAYMENT);
 
     ///////////////////////////////
     // Prepare TUSD reserves job //
     ///////////////////////////////
 
-    // OracleJob memory tusdReservesJob = super
-    //   .createJob()
-    //   .setOracle(
-    //     Constants.HTTP_GET_ORACLE_ADDR,
-    //     Constants.HTTP_GET_JOB_ID,
-    //     Constants.ONE_TENTH_LINK_PAYMENT
-    //   )
-    //   .withCallback(
-    //     address(this),
-    //     this.getTusdReserves.selector
-    //   );
+    JobBuilder.OracleJob memory tusdReservesJob = super
+      .createJob()
+      .addStringToBuffer("get", Constants.TUSD_URL)
+      .addStringToBuffer("path", "responseData.totalTrust")
+      .addIntegerToBuffer("times", int(Constants.TUSD_MULT_AMT))
+      .setOracle(
+        Constants.HTTP_GET_ORACLE_ADDR,
+        Constants.HTTP_GET_JOB_ID,
+        Constants.ONE_TENTH_LINK_PAYMENT
+      )
+      .withCallback(
+        address(this),
+        this.getTusdReserves.selector
+      );
 
-    // uint _randTsudReservesAmt = generateRandom(10 ** 16);
+    // uint _randTsudReservesAmt = PseudoRandom.generate(10 ** 16);
     // res.tusdReservesAmt = 10 ** 17 + _randTsudReservesAmt;
-
-    Chainlink.Request memory tusdReservesReq = buildChainlinkRequest(
-      Constants.HTTP_GET_JOB_ID, address(this), this.getTusdReserves.selector
-    );
-    tusdReservesReq.add("get", Constants.TUSD_URL);
-    tusdReservesReq.add("path", "responseData.totalTrust");
-    tusdReservesReq.addInt("times", int(Constants.TUSD_MULT_AMT));
-
-    sendChainlinkRequestTo(Constants.HTTP_GET_ORACLE_ADDR, tusdReservesReq, Constants.ONE_TENTH_LINK_PAYMENT);
-
-    // tusdReservesJob.request = tusdReservesReq;
 
     ///////////////////////////////////////
     // Prepare BTC sentiment analyis job //
@@ -178,12 +143,12 @@ contract OracleMaster is ChainlinkClient {
 
     // TODO: For now, we're just (insecurely) generating some values
 
-    uint _randBtcSentimentRaw = generateRandom(20000);
+    uint _randBtcSentimentRaw = PseudoRandom.generate(20000);
     res.btcSentiment = int(_randBtcSentimentRaw) - 10000;
 
     // NOTE: Commented out since there's no equivalent on Kovan testnet
 
-    // OracleJob memory btcSentimentJob = super
+    // JobBuilder.OracleJob memory btcSentimentJob = super
     //   .createJob()
     //   .setOracle(
     //     Constants.SENTIMENT_ORACLE_ADDR,
@@ -204,8 +169,8 @@ contract OracleMaster is ChainlinkClient {
     /////////////////////////////
 
     // super.executeJob(btcPricePredictionJob);
-    // super.executeJob(tusdAssetsJob);
-    // super.executeJob(tusdReservesJob);
+    super.executeJob(tusdAssetsJob);
+    super.executeJob(tusdReservesJob);
     // super.executeJob(btcSentimentJob);
   }
 
@@ -218,16 +183,12 @@ contract OracleMaster is ChainlinkClient {
   //   checkResponse(res);
   // }
 
-  event UintLog(uint value);
-
   function getTusdAssets(bytes32 _requestID, uint _tusdAssetsAmt) public recordChainlinkFulfillment(_requestID) {
-    emit UintLog(_tusdAssetsAmt);
     res.tusdAssetsAmt = _tusdAssetsAmt;
     checkResponse(res);
   }
 
   function getTusdReserves(bytes32 _requestID, uint _tusdReservesAmt) public recordChainlinkFulfillment(_requestID) {
-    emit UintLog(_tusdReservesAmt);
     res.tusdReservesAmt = _tusdReservesAmt;
     checkResponse(res);
   }
