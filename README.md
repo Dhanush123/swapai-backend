@@ -1,5 +1,5 @@
 # swapai-backend
- Chainlink Fall Hackathon 2021 project backend
+ Chainlink Fall Hackathon 2021 project backend: https://devpost.com/software/swapai
 
 Frontend repo: https://github.com/Dhanush123/swapai-frontend
 
